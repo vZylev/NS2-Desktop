@@ -38,3 +38,10 @@ The original FTP implementation remains included as upstream source.
 Hardware validation of this integration is still pending. The upstream runtime
 layout assumptions apply; automated tests cover host-side parsing, adapters,
 exports and failure handling, not successful mounting on physical hardware.
+
+Desktop extraction selection (0.4.2): the default export transfers only the
+highest-version mounted composed update view and DLC. With no mounted update it
+uses the base view. The optional all-versions export retains the separate base
+and all mounted updates. Browsing and structure inventories still expose all
+mounted views. Extraction reports record mode, selectedRoot and excludedRoots;
+intentional exclusions are distinct from skippedSources caused by mount errors.

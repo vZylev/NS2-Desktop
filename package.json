@@ -1,6 +1,6 @@
 {
   "name": "ns2-desktop",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "Local desktop interface and portable Windows build for the NS2 FS demo",
   "scripts": {

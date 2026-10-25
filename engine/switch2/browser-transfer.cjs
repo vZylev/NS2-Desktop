@@ -37,18 +37,30 @@ function localPath(filename) {
     return safe;
   }).join('/');
 }
-async function exportGame(backend, output, progress = () => {}) {
+function extractionSelection(entries, mode = 'latest') {
+  if (!['latest', 'all'].includes(mode)) throw Error('Invalid extraction mode');
+  if (mode === 'all') return {entries, selectedRoot: null, excludedRoots: []};
+  const updates = [...new Set(entries.map(row => /^\/updates\/(\d+)(?:\/|$)/.exec(row.path)?.[1]).filter(Boolean))];
+  updates.sort((a, b) => BigInt(a) > BigInt(b) ? -1 : BigInt(a) < BigInt(b) ? 1 : 0);
+  const selectedRoot = updates.length ? '/updates/' + updates[0] : '/base';
+  const roots = ['/base', ...updates.map(version => '/updates/' + version)];
+  return {selectedRoot, excludedRoots: roots.filter(root => root !== selectedRoot),
+    entries: entries.filter(row => row.path === selectedRoot || row.path.startsWith(selectedRoot + '/') ||
+      row.path === '/dlc' || row.path.startsWith('/dlc/'))};
+}
+async function exportGame(backend, output, progress = () => {}, {mode = 'latest'} = {}) {
   if (!backend.selected) throw Error('Select a game first');
+  const selection = extractionSelection(backend.entries, mode);
   await fs.mkdir(output, {recursive: true});
   const directory = await fs.mkdtemp(path.join(output, backend.selected.title + '-'));
   const file = path.join(directory, 'extraction.json');
-  const report = {engine: 'OunceCake', started: new Date().toISOString(), game: backend.selected,
+  const report = {engine: 'OunceCake', mode, selectedRoot: selection.selectedRoot, excludedRoots: selection.excludedRoots, started: new Date().toISOString(), game: backend.selected,
     absentSources: backend.absentSources, skippedSources: backend.skippedSources || [], complete: false, files: [], directories: []};
   const save = () => writeAtomic(file, JSON.stringify(report, null, 2));
   await save();
   try {
     const paths = new Set();
-    const entries = backend.entries.filter(row => row.path !== '/').map(row => {
+    const entries = selection.entries.filter(row => row.path !== '/').map(row => {
       const relative = localPath(row.path), key = relative.toLowerCase();
       if (paths.has(key)) throw Error('Case-insensitive output path collision: ' + row.path);
       paths.add(key); return {...row, relative};
@@ -69,4 +81,4 @@ async function exportGame(backend, output, progress = () => {}) {
     return {file, directory, complete: report.complete, skippedSources: report.skippedSources, files: report.files.length};
   } catch (error) {report.error = error.message; await save(); throw error;}
 }
-module.exports = {capture, exportGame, localPath};
+module.exports = {capture, exportGame, localPath, extractionSelection};

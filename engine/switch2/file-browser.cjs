@@ -74,7 +74,7 @@ async function main(proofFile, options = {}) {
       if (game && input.action === 'extract-all') {
         if (!game.selected) throw Error('Select a game first');
         respond(200, await exportGame({...game, request}, path.join(directory, '../extracted'),
-          (filename, done, total) => console.log('Files: ' + filename + ' ' + done + '/' + total + ' bytes'))); return;
+          (filename, done, total) => console.log('Files: ' + filename + ' ' + done + '/' + total + ' bytes'), {mode: input.extractionMode ?? 'latest'})); return;
       }
       if (input.action === 'structure') {
         let catalog = {};

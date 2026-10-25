@@ -147,6 +147,10 @@ test('authenticated browser serves OunceCake selection, structure, full extracti
   assert.equal(inventory.value.complete, true);
   const extraction = await call({action: 'extract-all'});
   assert.equal(extraction.value.complete, true); assert.equal(extraction.value.files, 3);
+  const allVersions = await call({action: 'extract-all', extractionMode: 'all'});
+  assert.equal(JSON.parse(await fs.readFile(allVersions.value.file)).mode, 'all');
+  const invalidMode = await call({action: 'extract-all', extractionMode: 'invalid'});
+  assert.equal(invalidMode.status, 400);
   const single = await call({action: 'download', source: 'game', path: '/base/exefs/main'});
   assert.equal(await fs.readFile(single.value.file, 'utf8'), 'MAIN');
   assert.equal((await call({action: 'finish'})).status, 200);
@@ -246,4 +250,35 @@ test('additional patch content titles do not discard an already mounted applicat
   const result = await require('../engine/switch2/ouncecake/engine/mounts.cjs').prepareGame(f, f.dependencies);
   assert.equal(result.skippedSources.length, 1);
   assert.equal(result.views.length, 4);
+});
+
+test('default extraction writes only the latest composed update and DLC; all versions is optional', async t => {
+  const {backend, prepared, title} = fixture();
+  const baseViews = prepared.views.slice(0, 2);
+  for (const version of [9, 10]) {
+    prepared.views.push(...baseViews.map(view => ({...view, path: view.path.replace('/base', '/updates/' + version),
+      source: {...view.source, version, selection: 'update'}})));
+  }
+  await backend.request('select', {title});
+  const folder = await output(t), requests = [];
+  const request = async (command, input) => {requests.push(input.path); return backend.request(command, input);};
+  const latest = await exportGame({...backend, request}, folder);
+  const latestReport = JSON.parse(await fs.readFile(latest.file));
+  assert.equal(latest.complete, true); assert.equal(latest.files, 3);
+  assert.equal(latestReport.mode, 'latest'); assert.equal(latestReport.selectedRoot, '/updates/10');
+  assert.deepEqual(latestReport.excludedRoots, ['/base', '/updates/9']);
+  assert.ok(latestReport.files.every(row => row.path.startsWith('/updates/10/') || row.path.startsWith('/dlc/')));
+  assert.ok(requests.every(filename => filename.startsWith('/updates/10/') || filename.startsWith('/dlc/')));
+  await assert.rejects(fs.stat(path.join(latest.directory, 'base')), {code: 'ENOENT'});
+  assert.equal(await fs.readFile(path.join(latest.directory, 'updates/10/romfs/data.bin'), 'utf8'), 'hello');
+  assert.equal(await fs.readFile(path.join(latest.directory, 'updates/10/exefs/main'), 'utf8'), 'MAIN');
+  const all = await exportGame(backend, folder, () => {}, {mode: 'all'});
+  assert.equal(all.complete, true); assert.equal(all.files, 7);
+  const allReport = JSON.parse(await fs.readFile(all.file));
+  assert.equal(allReport.mode, 'all'); assert.deepEqual(allReport.excludedRoots, []);
+  for (const root of ['base', 'updates/9', 'updates/10'])
+    assert.equal(await fs.readFile(path.join(all.directory, root, 'romfs/data.bin'), 'utf8'), 'hello');
+  // Extraction selection does not change the browsable tree.
+  assert.ok(backend.entries.some(row => row.path === '/base/romfs/data.bin'));
+  await assert.rejects(exportGame(backend, folder, () => {}, {mode: 'invalid'}), /Invalid extraction mode/);
 });

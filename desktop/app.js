@@ -10,9 +10,11 @@ const I18N = {
 
     extract: 'Extract RomFS / ExeFS (OunceCake)', help_extract: 'Open the game’s internal files using OunceCake: base game, updates and DLC. Browse, export structure or extract all files to the PC.',
     extractHint: 'Scan games or enter a TitleID, mount the game, then extract its files. Preparing updates can take a long time. Extracted files go to this session’s extracted folder; structure reports go to inventories. Results preserve base/romfs, base/exefs, updates and dlc folders.',
-    gameScan: 'Scan installed games', gameChoice: 'Installed game', gameId: 'TitleID to mount', gameMount: 'Mount game', gameExtract: 'Extract all files to PC', gameFiles: 'Mounted game',
+    gameScan: 'Scan installed games', gameChoice: 'Installed game', gameId: 'TitleID to mount', gameMount: 'Mount game', gameExtract: 'Extract to PC', gameFiles: 'Mounted game',
     gameSelected: 'Mounted game: ', gameSelectFirst: 'Select a game and click Mount game.', gameScanDone: 'Games found: ',
 
+    gameExtractMode: 'Files to extract', gameExtractLatest: 'Updated game (recommended)', gameExtractAll: 'All versions: base and updates',
+    gameExtractHint: 'Extracts only the newest mounted base + update view, plus DLC. Without an update, extracts the base. All versions also includes the separate base and older mounted updates.',
     gamePartial: 'Some additional updates could not be mounted. Available files can still be extracted; exports will be marked partial. Unavailable: ',
     extractionIncomplete: 'Partial extraction saved; see extraction.json for unavailable updates: ',
     fileStructure: 'Export structure', structureHint: 'Export a recursive JSON inventory of SD, USER and SYSTEM, including sizes, available title labels and inaccessible paths. No file contents are downloaded.', structureIncomplete: 'Inventory saved with inaccessible or unscanned paths: ',
@@ -108,9 +110,11 @@ const I18N = {
 
     extract: 'Extraer RomFS / ExeFS (OunceCake)', help_extract: 'Abre los archivos internos del juego con OunceCake: juego base, actualizaciones y DLC. Permite explorar, exportar estructura o extraer todos los archivos a la PC.',
     extractHint: 'Buscá los juegos o ingresá un TitleID, montá el juego y extraé sus archivos. Preparar las actualizaciones puede tardar bastante. Los archivos se guardan en extracted y los reportes de estructura en inventories, dentro de la sesión. Se conservan las carpetas base/romfs, base/exefs, updates y dlc.',
-    gameScan: 'Buscar juegos instalados', gameChoice: 'Juego instalado', gameId: 'TitleID para montar', gameMount: 'Montar juego', gameExtract: 'Extraer todos los archivos a la PC', gameFiles: 'Juego montado',
+    gameScan: 'Buscar juegos instalados', gameChoice: 'Juego instalado', gameId: 'TitleID para montar', gameMount: 'Montar juego', gameExtract: 'Extraer a la PC', gameFiles: 'Juego montado',
     gameSelected: 'Juego montado: ', gameSelectFirst: 'Elegí un juego y pulsá Montar juego.', gameScanDone: 'Juegos encontrados: ',
 
+    gameExtractMode: 'Archivos a extraer', gameExtractLatest: 'Juego actualizado (recomendado)', gameExtractAll: 'Todas las versiones: base y actualizaciones',
+    gameExtractHint: 'Extrae solo la vista base + actualización montada más reciente, además de los DLC. Sin actualización, extrae la base. Todas las versiones incluye también la base por separado y las actualizaciones anteriores montadas.',
     gamePartial: 'No se pudieron montar algunas actualizaciones adicionales. Podés extraer los archivos disponibles; la exportación se marcará como parcial. No disponibles: ',
     extractionIncomplete: 'Extracción parcial guardada; consultá extraction.json para ver las actualizaciones no disponibles: ',
     fileStructure: 'Exportar estructura', structureHint: 'Guarda un inventario JSON recursivo de SD, USER y SYSTEM, con tamaños, títulos disponibles y rutas inaccesibles. No descarga el contenido de los archivos.', structureIncomplete: 'Inventario guardado con rutas inaccesibles o sin recorrer: ',
@@ -270,7 +274,7 @@ if (typeof document !== 'undefined') {
   function browserControls() {
     for (const id of ['file-source', 'file-path', 'file-go', 'file-up', 'file-finish', 'file-more', 'file-structure'])
       $(id).disabled = browserBusy || remoteBusy || !browserReady || ($('file-source').value === 'game' && !gameMounted && !['file-finish', 'file-source'].includes(id));
-    for (const id of ['game-scan', 'game-choice', 'game-id', 'game-mount', 'game-extract'])
+    for (const id of ['game-scan', 'game-choice', 'game-id', 'game-mount', 'game-extract', 'game-extract-mode'])
       $(id).disabled = browserBusy || remoteBusy || !browserReady || (id === 'game-extract' && !gameMounted);
     document.querySelectorAll('.session-operation,#session-tools input,#session-tools select,#session-tools textarea,#session-tools button').forEach(element => {element.disabled = browserBusy || remoteBusy || !browserReady;});
     $('file-retry').hidden = !retryable && !pendingRetry;
@@ -332,7 +336,7 @@ if (typeof document !== 'undefined') {
   $('game-scan').addEventListener('click', () => runOperation({action: 'games'}));
   $('game-mount').addEventListener('click', () => runOperation({action: 'select', title: $('game-id').value.trim()}));
   $('game-choice').addEventListener('change', () => {$('game-id').value = $('game-choice').value;});
-  $('game-extract').addEventListener('click', () => fileAction('extract-all'));
+  $('game-extract').addEventListener('click', () => runOperation({action: 'extract-all', source: 'game', extractionMode: $('game-extract-mode').value}));
   $('file-retry').addEventListener('click', () => runOperation(pendingRetry || {action: 'retry'}));
   document.querySelectorAll('.session-operation').forEach(button => button.addEventListener('click', () => runOperation({
     action: button.dataset.action, title: $('title').value, storage: $('storage').value, version: $('version').value})));
