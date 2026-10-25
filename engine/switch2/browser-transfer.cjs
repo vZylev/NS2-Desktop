@@ -37,25 +37,30 @@ function localPath(filename) {
     return safe;
   }).join('/');
 }
-function extractionSelection(entries, mode = 'latest') {
-  if (!['latest', 'all'].includes(mode)) throw Error('Invalid extraction mode');
+function extractionSelection(entries, mode = 'latest', version) {
+  if (!['latest', 'all', 'base', 'update'].includes(mode)) throw Error('Invalid extraction mode');
   if (mode === 'all') return {entries, selectedRoot: null, excludedRoots: []};
   const updates = [...new Set(entries.map(row => /^\/updates\/(\d+)(?:\/|$)/.exec(row.path)?.[1]).filter(Boolean))];
   updates.sort((a, b) => BigInt(a) > BigInt(b) ? -1 : BigInt(a) < BigInt(b) ? 1 : 0);
-  const selectedRoot = updates.length ? '/updates/' + updates[0] : '/base';
+  if (mode === 'update' && (typeof version !== 'string' || !updates.includes(version)))
+    throw Error('Select an available mounted update version');
+  const selectedRoot = mode === 'base' ? '/base' : mode === 'update' ? '/updates/' + version :
+    updates.length ? '/updates/' + updates[0] : '/base';
+  if (!entries.some(row => row.path === selectedRoot || row.path.startsWith(selectedRoot + '/')))
+    throw Error('Selected extraction source is unavailable');
   const roots = ['/base', ...updates.map(version => '/updates/' + version)];
   return {selectedRoot, excludedRoots: roots.filter(root => root !== selectedRoot),
     entries: entries.filter(row => row.path === selectedRoot || row.path.startsWith(selectedRoot + '/') ||
-      row.path === '/dlc' || row.path.startsWith('/dlc/'))};
+      (mode === 'latest' && (row.path === '/dlc' || row.path.startsWith('/dlc/'))))};
 }
-async function exportGame(backend, output, progress = () => {}, {mode = 'latest'} = {}) {
+async function exportGame(backend, output, progress = () => {}, {mode = 'latest', version} = {}) {
   if (!backend.selected) throw Error('Select a game first');
-  const selection = extractionSelection(backend.entries, mode);
+  const selection = extractionSelection(backend.entries, mode, version);
   await fs.mkdir(output, {recursive: true});
   const directory = await fs.mkdtemp(path.join(output, backend.selected.title + '-'));
   const file = path.join(directory, 'extraction.json');
-  const report = {engine: 'OunceCake', mode, selectedRoot: selection.selectedRoot, excludedRoots: selection.excludedRoots, started: new Date().toISOString(), game: backend.selected,
-    absentSources: backend.absentSources, skippedSources: backend.skippedSources || [], complete: false, files: [], directories: []};
+  const report = {engine: 'OunceCake', mode, contentView: selection.selectedRoot?.startsWith('/updates/') ? 'base-plus-update' : mode === 'base' ? 'base' : 'mounted-files', selectedRoot: selection.selectedRoot, excludedRoots: selection.excludedRoots, started: new Date().toISOString(), game: backend.selected,
+    absentSources: backend.absentSources, skippedSources: (backend.skippedSources || []).filter(source => !['base', 'update'].includes(mode) || source.path === selection.selectedRoot || source.path?.startsWith(selection.selectedRoot + '/')), complete: false, files: [], directories: []};
   const save = () => writeAtomic(file, JSON.stringify(report, null, 2));
   await save();
   try {

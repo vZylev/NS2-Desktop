@@ -45,3 +45,10 @@ uses the base view. The optional all-versions export retains the separate base
 and all mounted updates. Browsing and structure inventories still expose all
 mounted views. Extraction reports record mode, selectedRoot and excludedRoots;
 intentional exclusions are distinct from skippedSources caused by mount errors.
+
+Desktop extraction selection (0.4.3): base-only and specific mounted update
+exports exclude DLC and other versions. The update selector lists mounted
+versions and rejects unavailable selections. A specific update exports the
+composed base-plus-update view, not a standalone patch; both the UI and report
+identify this explicitly. Skipped update failures outside a base-only or
+specific-version selection do not mark that selected export incomplete.

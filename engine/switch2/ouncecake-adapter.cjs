@@ -48,11 +48,11 @@ function createBackend(run, dependencies = {}) {
   const attach = dependencies.attach || require('./ouncecake/engine/session.cjs').attachGame;
   const discover = dependencies.discover || require('./ouncecake/engine/content.cjs').discoverGames;
   const prepare = dependencies.prepare || require('./ouncecake/engine/mounts.cjs').prepareGame;
-  let attachment, games = [], index, selected, absentSources = [], skippedSources = [];
+  let attachment, games = [], index, selected, absentSources = [], skippedSources = [], updateVersions = [];
   async function ensure() {return attachment ||= await attach(run);}
   async function close() {
     if (attachment) {await attachment.close(); attachment = null;}
-    index = null; selected = null; absentSources = []; skippedSources = [];
+    index = null; selected = null; absentSources = []; skippedSources = []; updateVersions = [];
   }
   async function request(command, input = {}) {
     if (command === 'games') {games = await discover(await ensure()); return {games};}
@@ -75,7 +75,9 @@ function createBackend(run, dependencies = {}) {
       }
       index = createIndex(prepared, candidate); selected = candidate; absentSources = prepared.absentSources || [];
       skippedSources = prepared.skippedSources || [];
-      return {selected, skippedSources, files: [...index.rows.values()].filter(row => row.type === 1).length, absentSources};
+      updateVersions = [...index.rows.keys()].map(filename => /^\/updates\/(\d+)$/.exec(filename)?.[1]).filter(Boolean)
+        .sort((a, b) => BigInt(a) > BigInt(b) ? -1 : BigInt(a) < BigInt(b) ? 1 : 0);
+      return {selected, skippedSources, updateVersions, files: [...index.rows.values()].filter(row => row.type === 1).length, absentSources};
     }
     if (command === 'close') {await close(); return {closed: true};}
     if (command === 'mount') return {source: 'game', available: !!index, result: index ? 0 : 'Select a game first'};
@@ -108,6 +110,6 @@ function createBackend(run, dependencies = {}) {
     return {size, offset, length, base64: bytes.toString('base64'), sha256: crypto.createHash('sha256').update(bytes).digest('hex')};
   }
   return {request, close, get selected() {return selected;}, get entries() {return index ? [...index.rows.values()] : [];},
-    get absentSources() {return absentSources;}, get skippedSources() {return skippedSources;}, validatePath: gamePath};
+    get absentSources() {return absentSources;}, get skippedSources() {return skippedSources;}, get updateVersions() {return updateVersions;}, validatePath: gamePath};
 }
 module.exports = {createBackend, createIndex, gamePath};

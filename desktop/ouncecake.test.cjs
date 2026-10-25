@@ -119,7 +119,7 @@ test('upstream RomFS parser reads an internal file and rejects short reads and c
 
 test('authenticated browser serves OunceCake selection, structure, full extraction and cleanup end to end', async t => {
   const folder = await output(t), directory = path.join(folder, 'switch2'); await fs.mkdir(directory);
-  const {backend, calls} = fixture();
+  const {backend, calls, prepared} = fixture();
   const proofFile = path.join(folder, 'proof.json');
   await fs.writeFile(proofFile, JSON.stringify({session: 'test', report: 'report', verified: true,
     trials: [{verified: true, restored: true}, {verified: true, restored: true}]}));
@@ -151,6 +151,12 @@ test('authenticated browser serves OunceCake selection, structure, full extracti
   assert.equal(JSON.parse(await fs.readFile(allVersions.value.file)).mode, 'all');
   const invalidMode = await call({action: 'extract-all', extractionMode: 'invalid'});
   assert.equal(invalidMode.status, 400);
+  prepared.views.push(...prepared.views.slice(0, 2).map(view => ({...view, path: view.path.replace('/base', '/updates/9')})));
+  const remounted = await call({action: 'select', title: games[0].title});
+  assert.deepEqual(remounted.value.updateVersions, ['9']);
+  const specific = await call({action: 'extract-all', extractionMode: 'update', updateVersion: '9'});
+  assert.equal(specific.status, 200); assert.equal(specific.value.files, 2);
+  assert.equal(JSON.parse(await fs.readFile(specific.value.file)).selectedRoot, '/updates/9');
   const single = await call({action: 'download', source: 'game', path: '/base/exefs/main'});
   assert.equal(await fs.readFile(single.value.file, 'utf8'), 'MAIN');
   assert.equal((await call({action: 'finish'})).status, 200);
@@ -281,4 +287,38 @@ test('default extraction writes only the latest composed update and DLC; all ver
   // Extraction selection does not change the browsable tree.
   assert.ok(backend.entries.some(row => row.path === '/base/romfs/data.bin'));
   await assert.rejects(exportGame(backend, folder, () => {}, {mode: 'invalid'}), /Invalid extraction mode/);
+});
+
+test('base-only extraction omits updates and DLC and ignores unrelated skipped updates', async t => {
+  const {backend, prepared, title} = fixture();
+  prepared.skippedSources = [{path: '/updates/786432', error: 'License unavailable'}];
+  prepared.views.push({...prepared.views[0], path: '/updates/10/romfs'});
+  await backend.request('select', {title});
+  const result = await exportGame(backend, await output(t), () => {}, {mode: 'base'});
+  const report = JSON.parse(await fs.readFile(result.file));
+  assert.equal(result.complete, true); assert.equal(result.files, 2);
+  assert.equal(report.contentView, 'base'); assert.deepEqual(report.skippedSources, []);
+  assert.ok(report.files.every(row => row.path.startsWith('/base/')));
+  await assert.rejects(fs.stat(path.join(result.directory, 'dlc')), {code: 'ENOENT'});
+  await assert.rejects(fs.stat(path.join(result.directory, 'updates')), {code: 'ENOENT'});
+});
+
+test('specific update selection exports exactly that composed version without base or DLC duplicates', async t => {
+  const {backend, prepared, title} = fixture();
+  const baseViews = prepared.views.slice(0, 2);
+  for (const version of [9, 10]) prepared.views.push(...baseViews.map(view => ({...view,
+    path: view.path.replace('/base', '/updates/' + version), source: {...view.source, version, selection: 'update'}})));
+  const mounted = await backend.request('select', {title});
+  assert.deepEqual(mounted.updateVersions, ['10', '9']);
+  assert.deepEqual(backend.updateVersions, ['10', '9']);
+  const result = await exportGame(backend, await output(t), () => {}, {mode: 'update', version: '9'});
+  const report = JSON.parse(await fs.readFile(result.file));
+  assert.equal(result.files, 2); assert.equal(report.selectedRoot, '/updates/9');
+  assert.equal(report.contentView, 'base-plus-update');
+  assert.ok(report.files.every(row => row.path.startsWith('/updates/9/')));
+  await assert.rejects(fs.stat(path.join(result.directory, 'base')), {code: 'ENOENT'});
+  await assert.rejects(fs.stat(path.join(result.directory, 'dlc')), {code: 'ENOENT'});
+  for (const version of [undefined, '11', '../base', 9])
+    await assert.rejects(exportGame(backend, await output(t), () => {}, {mode: 'update', version}), /available mounted update/);
+  await backend.close(); assert.deepEqual(backend.updateVersions, []);
 });
