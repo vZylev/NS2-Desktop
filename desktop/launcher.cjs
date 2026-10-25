@@ -12,12 +12,13 @@ async function main() {
   const manifest = JSON.parse(sea.getAsset('manifest', 'utf8'));
   const base = process.env.NS2_DESKTOP_HOME || (process.platform === 'win32' ?
     path.join(process.env.LOCALAPPDATA || os.homedir(), 'NS2 Desktop') : path.join(os.homedir(), '.ns2-desktop'));
-  const app = path.join(base, 'app-' + manifest.digest.slice(0, 16));
+  const app = path.join(base, 'app-' + manifest.target + '-' + manifest.digest.slice(0, 16));
   const marker = path.join(app, '.ready');
   const runtimeName = process.platform === 'win32' ? 'node.exe' : 'node';
   const runtime = path.join(app, 'runtime', runtimeName);
+  const identity = manifest.digest + ':' + manifest.runtimeSha256;
   let ready = await fs.readFile(marker, 'utf8').catch(() => '');
-  if (ready !== manifest.digest) {
+  if (ready !== identity) {
     console.log('NS2 Desktop — Preparing application / Preparando aplicación…');
     await fs.mkdir(base, {recursive: true, mode: 0o700});
     const temporary = await fs.mkdtemp(path.join(base, '.extract-'));
@@ -38,18 +39,18 @@ async function main() {
         throw Error('Runtime checksum differs / El entorno está dañado');
       await fs.mkdir(path.join(temporary, 'runtime'), {mode: 0o700});
       await fs.writeFile(path.join(temporary, 'runtime', runtimeName), runtimeBytes, {mode: 0o700});
-      await fs.writeFile(path.join(temporary, '.ready'), manifest.digest, {mode: 0o600});
+      await fs.writeFile(path.join(temporary, '.ready'), identity, {mode: 0o600});
       try {await fs.rename(temporary, app);}
       catch (error) {
         ready = await fs.readFile(marker, 'utf8').catch(() => '');
-        if (ready !== manifest.digest) throw error;
+        if (ready !== identity) throw error;
       }
     } finally {await fs.rm(temporary, {recursive: true, force: true});}
   }
   if (process.argv.includes('--self-test')) {
     const child = spawn(runtime, ['--version'], {stdio: 'inherit', windowsHide: true});
     child.once('error', error => {console.error(error.message); process.exitCode = 1;});
-    child.once('close', code => {process.exitCode = code || 0;});
+    child.once('close', code => {process.exitCode = code ?? 1;});
     return;
   }
   const child = spawn(runtime, [path.join(app, 'desktop/server.cjs'),
@@ -57,7 +58,7 @@ async function main() {
     {cwd: app, stdio: 'inherit', windowsHide: true, env: {...process.env,
       NS2_DATA_ROOT: path.join(base, 'data'), NS2_BUILD_ID: manifest.digest}});
   child.once('error', error => {console.error(error.message); process.exitCode = 1;});
-  child.once('close', code => {process.exitCode = code || 0;});
+  child.once('close', code => {process.exitCode = code ?? 1;});
 }
 
 main().catch(async error => {

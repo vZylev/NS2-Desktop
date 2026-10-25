@@ -13,6 +13,7 @@ const I18N = {
     gameScan: 'Scan installed games', gameChoice: 'Installed game', gameId: 'TitleID to mount', gameMount: 'Mount game', gameExtract: 'Extract to PC', gameFiles: 'Mounted game',
     gameSelected: 'Mounted game: ', gameSelectFirst: 'Select a game and click Mount game.', gameScanDone: 'Games found: ',
 
+    gameExtractDlc: 'Specific DLC only', gameDlcChoice: 'DLC and version', gameDlcNone: 'No DLC available',
     gameExtractBase: 'Base only (no updates or DLC)', gameExtractUpdate: 'Specific updated version (base + update)',
     gameUpdateVersion: 'Mounted update version', gameUpdateNone: 'No update available', gameUpdateHint: 'Exports only this version’s combined RomFS / ExeFS, without a separate base copy or DLC. This is not a standalone patch.',
     gameExtractMode: 'Files to extract', gameExtractLatest: 'Updated game (recommended)', gameExtractAll: 'All versions: base and updates',
@@ -115,6 +116,7 @@ const I18N = {
     gameScan: 'Buscar juegos instalados', gameChoice: 'Juego instalado', gameId: 'TitleID para montar', gameMount: 'Montar juego', gameExtract: 'Extraer a la PC', gameFiles: 'Juego montado',
     gameSelected: 'Juego montado: ', gameSelectFirst: 'Elegí un juego y pulsá Montar juego.', gameScanDone: 'Juegos encontrados: ',
 
+    gameExtractDlc: 'Solo un DLC concreto', gameDlcChoice: 'DLC y versión', gameDlcNone: 'No hay DLC disponibles',
     gameExtractBase: 'Solo base (sin actualizaciones ni DLC)', gameExtractUpdate: 'Versión actualizada concreta (base + actualización)',
     gameUpdateVersion: 'Versión de actualización montada', gameUpdateNone: 'No hay actualizaciones disponibles', gameUpdateHint: 'Extrae únicamente los RomFS / ExeFS combinados de esta versión, sin otra copia de la base ni DLC. No es un parche independiente.',
     gameExtractMode: 'Archivos a extraer', gameExtractLatest: 'Juego actualizado (recomendado)', gameExtractAll: 'Todas las versiones: base y actualizaciones',
@@ -270,9 +272,16 @@ if (typeof document !== 'undefined') {
     $('stall-warning').textContent = t('stallExplanation');
   }
   let browserBusy = false, browserReady = false, browserStarted = null, fileNext = null, listedPath = '/', listedSource = 'sd', gameMounted = false;
-  let remoteBusy = false, retryable = false, pendingRetry = null, mountedUpdateVersions = [], extractionTitle = null;
-  function updateExtractionChoices(versions = [], title = null) {
-    if (title !== extractionTitle) {mountedUpdateVersions = []; $('game-update-version').replaceChildren(); extractionTitle = title;}
+  let remoteBusy = false, retryable = false, pendingRetry = null, mountedUpdateVersions = [], mountedDlcs = [], extractionTitle = null;
+  function updateExtractionChoices(versions = [], title = null, dlcs = []) {
+    if (title !== extractionTitle) {mountedUpdateVersions = []; mountedDlcs = []; $('game-dlc').replaceChildren(); $('game-update-version').replaceChildren(); extractionTitle = title;}
+    const previousDlc = $('game-dlc').value;
+    if (JSON.stringify(dlcs) !== JSON.stringify(mountedDlcs) || !$('game-dlc').options.length) {
+      mountedDlcs = dlcs;
+      $('game-dlc').replaceChildren(...dlcs.map(dlc => new Option(dlc.titleId + ' · v' + dlc.version, dlc.path)));
+      if (!dlcs.length) $('game-dlc').add(new Option(t('gameDlcNone'), ''));
+      if (dlcs.some(dlc => dlc.path === previousDlc)) $('game-dlc').value = previousDlc;
+    }
     const previous = $('game-update-version').value;
     if (JSON.stringify(versions) !== JSON.stringify(mountedUpdateVersions) || !$('game-update-version').options.length) {
       mountedUpdateVersions = versions;
@@ -290,6 +299,10 @@ if (typeof document !== 'undefined') {
       $(id).disabled = browserBusy || remoteBusy || !browserReady || ($('file-source').value === 'game' && !gameMounted && !['file-finish', 'file-source'].includes(id));
     for (const id of ['game-scan', 'game-choice', 'game-id', 'game-mount', 'game-extract', 'game-extract-mode', 'game-update-version'])
       $(id).disabled = browserBusy || remoteBusy || !browserReady || (id === 'game-extract' && !gameMounted);
+    const specificDlc = $('game-extract-mode').value === 'dlc';
+    $('game-dlc-choice').hidden = !specificDlc;
+    $('game-dlc').disabled = browserBusy || remoteBusy || !browserReady || !gameMounted || !mountedDlcs.length;
+    if (specificDlc && (!gameMounted || !mountedDlcs.some(dlc => dlc.path === $('game-dlc').value))) $('game-extract').disabled = true;
     const specificUpdate = $('game-extract-mode').value === 'update';
     $('game-update-choice').hidden = !specificUpdate;
     $('game-update-version').disabled = browserBusy || remoteBusy || !browserReady || !gameMounted || !mountedUpdateVersions.length;
@@ -320,7 +333,7 @@ if (typeof document !== 'undefined') {
         if (value.games.length) $('game-id').value = value.games[0].title;
         $('file-status').textContent = t('gameScanDone') + value.games.length;
       } else if (action === 'select') {
-        gameMounted = true; gameWarning(value.skippedSources); updateExtractionChoices(value.updateVersions, value.selected.title); $('game-selected').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
+        gameMounted = true; gameWarning(value.skippedSources); updateExtractionChoices(value.updateVersions, value.selected.title, value.dlcs); $('game-selected').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
         $('file-source').value = 'game'; $('file-path').value = '/'; $('file-entries').replaceChildren(); $('file-more').hidden = true;
         $('file-status').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
       } else if (action === 'list') {
@@ -354,8 +367,9 @@ if (typeof document !== 'undefined') {
   $('game-scan').addEventListener('click', () => runOperation({action: 'games'}));
   $('game-mount').addEventListener('click', () => runOperation({action: 'select', title: $('game-id').value.trim()}));
   $('game-choice').addEventListener('change', () => {$('game-id').value = $('game-choice').value;});
-  $('game-extract').addEventListener('click', () => runOperation({action: 'extract-all', source: 'game', extractionMode: $('game-extract-mode').value, updateVersion: $('game-update-version').value}));
+  $('game-extract').addEventListener('click', () => runOperation({action: 'extract-all', source: 'game', extractionMode: $('game-extract-mode').value, updateVersion: $('game-update-version').value, dlcPath: $('game-dlc').value}));
   $('game-extract-mode').addEventListener('change', browserControls);
+  $('game-dlc').addEventListener('change', browserControls);
   $('game-update-version').addEventListener('change', browserControls);
   $('file-retry').addEventListener('click', () => runOperation(pendingRetry || {action: 'retry'}));
   document.querySelectorAll('.session-operation').forEach(button => button.addEventListener('click', () => runOperation({
@@ -383,7 +397,7 @@ if (typeof document !== 'undefined') {
     }
     if (!['browse', 'extract', 'session'].includes(current.mode) || !current.active) {browserReady = false; browserControls(); return;}
     const result = await api('browser?details=1'); browserReady = result.ready; remoteBusy = !!result.busy;
-    gameMounted = !!result.selected; gameWarning(result.skippedSources); updateExtractionChoices(result.updateVersions, result.selected?.title || null);
+    gameMounted = !!result.selected; gameWarning(result.skippedSources); updateExtractionChoices(result.updateVersions, result.selected?.title || null, result.dlcs);
     if (result.selected) $('game-selected').textContent = t('gameSelected') + (result.selected.name || result.selected.title);
     if (!browserBusy) {
       retryable = !!result.retryable;

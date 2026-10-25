@@ -34,7 +34,7 @@ async function main(proofFile, options = {}) {
   const server = http.createServer(async (req, res) => {
     const send = (code, value) => {res.writeHead(code, {'Content-Type': 'application/json'}); res.end(JSON.stringify(value));};
     if (req.headers.authorization !== 'Bearer ' + token) return send(401, {error: 'Unauthorized'});
-    if (req.method === 'GET') return send(200, {ready: true, busy, selected: game?.selected || null, skippedSources: game?.skippedSources || [], updateVersions: game?.updateVersions || [],
+    if (req.method === 'GET') return send(200, {ready: true, busy, selected: game?.selected || null, skippedSources: game?.skippedSources || [], updateVersions: game?.updateVersions || [], dlcs: game?.dlcs || [],
       retryable: !!lastFailure && !lastFailure.uncertain, lastError: lastFailure?.message || '', lastAction: lastFailure?.input.action || ''});
     if (busy) return send(409, {error: 'Browser busy', retryable: false, busy: true});
     busy = true;
@@ -74,7 +74,7 @@ async function main(proofFile, options = {}) {
       if (game && input.action === 'extract-all') {
         if (!game.selected) throw Error('Select a game first');
         respond(200, await exportGame({...game, request}, path.join(directory, '../extracted'),
-          (filename, done, total) => console.log('Files: ' + filename + ' ' + done + '/' + total + ' bytes'), {mode: input.extractionMode ?? 'latest', version: input.updateVersion})); return;
+          (filename, done, total) => console.log('Files: ' + filename + ' ' + done + '/' + total + ' bytes'), {mode: input.extractionMode ?? 'latest', version: input.updateVersion, dlcPath: input.dlcPath})); return;
       }
       if (input.action === 'structure') {
         let catalog = {};

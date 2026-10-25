@@ -29,7 +29,7 @@ async function download(url) {
 
 async function main(args = process.argv.slice(2)) {
   const target = args.length === 2 && args[0] === '--target' ? args[1] : null;
-  check(['win-x64', 'linux-x64'].includes(target), 'Usage: node desktop/build.cjs --target win-x64|linux-x64');
+  check(['win-x64', 'linux-x64', 'darwin-x64', 'darwin-arm64'].includes(target), 'Usage: node desktop/build.cjs --target win-x64|linux-x64|darwin-x64|darwin-arm64');
   check(process.versions.node === VERSION, 'Use Node ' + VERSION + ' to generate a matching SEA preparation blob');
   const build = path.join(ROOT, '.build', target), dist = path.join(ROOT, 'dist');
   await fs.mkdir(build, {recursive: true}); await fs.mkdir(dist, {recursive: true});
@@ -47,8 +47,24 @@ async function main(args = process.argv.slice(2)) {
       await fs.writeFile(file, runtime);
     }
   } else {
-    check(process.platform === 'linux' && process.arch === 'x64', 'Linux smoke build needs Linux x64');
-    runtime = await fs.readFile(process.execPath);
+    const [platform, arch] = target.split('-');
+    check(process.platform === platform && process.arch === arch, 'Build this target on a matching native runner');
+    const name = 'node-v' + VERSION + '-' + target + '.tar.gz';
+    const sums = (await download('https://nodejs.org/dist/v' + VERSION + '/SHASUMS256.txt')).toString();
+    const row = sums.split('\n').find(line => line.endsWith('  ' + name));
+    check(row, 'Official runtime checksum is missing');
+    const archive = path.join(build, name);
+    let packed = await fs.readFile(archive).catch(() => null);
+    if (!packed || hash(packed) !== row.slice(0, 64)) {
+      packed = await download('https://nodejs.org/dist/v' + VERSION + '/' + name);
+      check(hash(packed) === row.slice(0, 64), 'Downloaded Node runtime checksum differs');
+      await fs.writeFile(archive, packed);
+    }
+    const extracted = path.join(build, 'official-runtime');
+    await fs.mkdir(extracted, {recursive: true});
+    await execute('tar', ['-xzf', archive, '-C', extracted, '--strip-components=1',
+      'node-v' + VERSION + '-' + target + '/bin/node']);
+    runtime = await fs.readFile(path.join(extracted, 'bin/node'));
   }
   const license = await download('https://raw.githubusercontent.com/nodejs/node/v' + VERSION + '/LICENSE');
   const files = [];
@@ -58,7 +74,7 @@ async function main(args = process.argv.slice(2)) {
     for (const entry of await fs.readdir(path.join(ROOT, folder), {withFileTypes: true})) {
       const name = folder + '/' + entry.name;
       if (entry.isDirectory()) await walk(name);
-      else if (entry.isFile() && !entry.name.endsWith('.test.cjs') && !['build.cjs', 'launcher.cjs'].includes(entry.name))
+      else if (entry.isFile() && !entry.name.endsWith('.test.cjs') && !['build.cjs', 'launcher.cjs', 'smoke-build.cjs'].includes(entry.name))
         files.push([name, (await fs.readFile(path.join(ROOT, name))).toString('base64')]);
     }
   }
@@ -80,11 +96,16 @@ async function main(args = process.argv.slice(2)) {
   await fs.writeFile(configFile, JSON.stringify(config));
   console.log('Building embedded application…');
   await execute(process.execPath, ['--experimental-sea-config', configFile], {maxBuffer: 4 * 1024 * 1024});
-  const executable = path.join(dist, target === 'win-x64' ? 'NS2-Desktop.exe' : 'NS2-Desktop-linux');
+  const executable = path.join(dist, target === 'win-x64' ? 'NS2-Desktop.exe' : 'NS2-Desktop-' + target);
   await fs.writeFile(executable, target === 'win-x64' ? stripCertificate(Buffer.from(runtime)) : runtime, {mode: 0o755});
+  if (target.startsWith('darwin-')) await execute('codesign', ['--remove-signature', executable]);
   console.log('Injecting SEA into ' + executable + '…');
   await require('postject').inject(executable, 'NODE_SEA_BLOB', await fs.readFile(blob),
-    {sentinelFuse: 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'});
+    {sentinelFuse: 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2', ...(target.startsWith('darwin-') ? {machoSegmentName: 'NODE_SEA'} : {})});
+  if (target.startsWith('darwin-')) {
+    await execute('codesign', ['--sign', '-', '--force', executable]);
+    await execute('codesign', ['--verify', '--strict', executable]);
+  }
   await fs.writeFile(executable + '.sha256', hash(await fs.readFile(executable)) + '  ' + path.basename(executable) + '\n');
   await fs.writeFile(path.join(dist, 'NODE-LICENSE.txt'), license);
   console.log(JSON.stringify({file: executable, bytes: (await fs.stat(executable)).size, ...manifest}, null, 2));

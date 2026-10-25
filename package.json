@@ -1,12 +1,15 @@
 {
   "name": "ns2-desktop",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "private": true,
-  "description": "Local desktop interface and portable Windows build for the NS2 FS demo",
+  "description": "Desktop interface for console file browsing and extraction on Windows, Linux and macOS",
   "scripts": {
     "desktop": "node desktop/server.cjs",
     "build:windows": "node desktop/build.cjs --target win-x64",
-    "test": "node --test test.cjs desktop/*.test.cjs engine/shared/*.test.cjs engine/switch2/game-export.test.cjs engine/switch2/memory/*.test.cjs engine/switch2/ro/layout.test.cjs engine/switch2/retained/*.test.cjs"
+    "test": "node --test test.cjs desktop/*.test.cjs engine/shared/*.test.cjs engine/switch2/game-export.test.cjs engine/switch2/memory/*.test.cjs engine/switch2/ro/layout.test.cjs engine/switch2/retained/*.test.cjs",
+    "build:linux": "node desktop/build.cjs --target linux-x64",
+    "build:mac:intel": "node desktop/build.cjs --target darwin-x64",
+    "build:mac:arm64": "node desktop/build.cjs --target darwin-arm64"
   },
   "devDependencies": {
     "postject": "1.0.0-alpha.6"

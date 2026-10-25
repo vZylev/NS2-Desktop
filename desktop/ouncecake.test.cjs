@@ -154,6 +154,9 @@ test('authenticated browser serves OunceCake selection, structure, full extracti
   prepared.views.push(...prepared.views.slice(0, 2).map(view => ({...view, path: view.path.replace('/base', '/updates/9')})));
   const remounted = await call({action: 'select', title: games[0].title});
   assert.deepEqual(remounted.value.updateVersions, ['9']);
+  assert.deepEqual(remounted.value.dlcs.map(dlc => dlc.path), ['/dlc/0100000000001001/1']);
+  const dlcExport = await call({action: 'extract-all', extractionMode: 'dlc', dlcPath: '/dlc/0100000000001001/1'});
+  assert.equal(dlcExport.status, 200); assert.equal(dlcExport.value.files, 1);
   const specific = await call({action: 'extract-all', extractionMode: 'update', updateVersion: '9'});
   assert.equal(specific.status, 200); assert.equal(specific.value.files, 2);
   assert.equal(JSON.parse(await fs.readFile(specific.value.file)).selectedRoot, '/updates/9');
@@ -321,4 +324,22 @@ test('specific update selection exports exactly that composed version without ba
   for (const version of [undefined, '11', '../base', 9])
     await assert.rejects(exportGame(backend, await output(t), () => {}, {mode: 'update', version}), /available mounted update/);
   await backend.close(); assert.deepEqual(backend.updateVersions, []);
+});
+
+test('specific DLC extraction includes only the chosen DLC and version', async t => {
+  const {backend, prepared, title} = fixture();
+  prepared.views.push({...prepared.views[0], path: '/dlc/0100000000001002/2/romfs',
+    source: {...prepared.views[0].source, selection: 'dlc', version: 2}});
+  prepared.skippedSources = [{path: '/updates/786432', error: 'Unavailable update'}];
+  const mounted = await backend.request('select', {title});
+  assert.deepEqual(mounted.dlcs.map(item => item.path), ['/dlc/0100000000001001/1', '/dlc/0100000000001002/2']);
+  const result = await exportGame(backend, await output(t), () => {}, {mode: 'dlc', dlcPath: '/dlc/0100000000001002/2'});
+  const report = JSON.parse(await fs.readFile(result.file));
+  assert.equal(result.complete, true); assert.equal(result.files, 1); assert.equal(report.contentView, 'dlc');
+  assert.equal(report.selectedRoot, '/dlc/0100000000001002/2');
+  assert.ok(report.files.every(row => row.path.startsWith(report.selectedRoot + '/')));
+  assert.equal(await fs.readFile(path.join(result.directory, 'dlc/0100000000001002/2/romfs/data.bin'), 'utf8'), 'hello');
+  for (const dlcPath of [undefined, '/dlc/0100000000001002/3', '/base', '/dlc/../base', '/dlc/0100000000001002/2/romfs'])
+    await assert.rejects(exportGame(backend, await output(t), () => {}, {mode: 'dlc', dlcPath}), /available mounted DLC/);
+  await backend.close(); assert.deepEqual(backend.dlcs, []);
 });

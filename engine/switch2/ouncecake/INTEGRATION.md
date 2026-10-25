@@ -52,3 +52,7 @@ versions and rejects unavailable selections. A specific update exports the
 composed base-plus-update view, not a standalone patch; both the UI and report
 identify this explicitly. Skipped update failures outside a base-only or
 specific-version selection do not mark that selected export incomplete.
+
+Desktop extraction selection (0.5.0): a specific DLC can be selected by its
+mounted title ID and version. Only that DLC subtree is transferred, with
+availability checked before creating an output directory.
