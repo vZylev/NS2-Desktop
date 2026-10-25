@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NS2 Desktop</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<main>
+  <header><div class="brand"><span class="logo">N2</span><div><h1>NS2 Desktop</h1><p data-i18n="subtitle">Console tools, one step at a time.</p></div></div><label class="language"><span data-i18n="language">Language</span><select id="language"><option value="en">English</option><option value="es">Español</option></select></label></header>
+  <section class="card instance-notice" id="instance-notice" hidden role="status"><h2 data-i18n="otherInstanceTitle">Another instance is open</h2><p id="instance-details"></p><button id="takeover" data-i18n="replaceInstance">Close the other instance and use this one</button></section>
+  <div class="columns">
+    <section class="card setup"><div class="section-label" data-i18n="setup">01 / SETUP</div><h2 data-i18n="operation">Connect your console</h2>
+      <form id="form">
+        <input id="mode" type="hidden" value="session"><p class="hint" id="mode-help" data-i18n="help_session"></p>
+        <label for="host" data-i18n="host">This computer's network address</label><select id="host"></select><p class="hint" data-i18n="network">Choose the address on the same network as your console.</p>
+        <label for="pairing" data-i18n="pairing">Consoles on your network</label><select id="pairing"><option value="single" data-i18n="pairingSingle">One Switch — use 0,0,0,0</option><option value="session" data-i18n="pairingSession">Multiple Switch consoles — use a session code</option></select><p class="hint" data-i18n="pairingHint">Choose one Switch to shorten the command. The first compatible connection using zeros is accepted; consoles are not counted automatically.</p>
+        <button class="primary" id="start" type="submit" data-i18n="start">Start a new session</button>
+      </form>
+      <div class="requirements"><strong data-i18n="requirements">Before you start</strong><p data-i18n="requirementsText">SmileBASIC 4.4.9 · System 23.0.1 · More than 20 MiB free in the SmileBASIC save. Keep the session open while using its tools.</p><button class="link" id="bootstrap" data-i18n="download">Download bootstrap.bas</button><p class="hint" data-i18n="bootstrapHint">Enter this file in SmileBASIC slot 0 and save it as NS2. This is a one-time setup.</p></div>
+    </section>
+    <div class="right">
+      <section class="card"><div class="heading"><div><div class="section-label" data-i18n="connect">02 / CONNECT</div><h2 data-i18n="consoleSteps">Continue on your console</h2></div><span class="status" id="status"></span></div>
+        <ol class="steps"><li data-i18n="step1">Open SmileBASIC and choose “Make a program”.</li><li><span data-i18n="step2">Enter these commands separately, confirming the load:</span><pre>LOAD "TXT:NS2"
+RUN
+REMOVE NSR,&amp;H60000000,&amp;H3FFFFFFF</pre><p class="hint" data-i18n="memory">“Out of memory” is expected. Enter REMOVE only once per application process.</p></li><li><span data-i18n="step3">Start a PC session, then enter the connection command shown below:</span><div class="command"><code id="command" data-i18n="commandPlaceholder">Your START command will appear here.</code><button id="copy" disabled data-i18n="copy">Copy</button></div></li></ol>
+        <p class="keep-open" data-i18n="keepOpen">Keep SmileBASIC and this application open until the session finishes. Restart the console when you are done.</p>
+      </section>
+      <section class="card progress"><div class="heading"><div><div class="section-label" data-i18n="progress">03 / PROGRESS</div><h2 id="stage" data-i18n="ready">Ready when you are</h2></div><button id="output" data-i18n="openResults">Open results</button></div><div class="error" id="error" role="alert" hidden></div><button id="session-retry" hidden data-i18n="retry">Retry</button><p id="session-retry-hint" class="hint"></p><div id="live-progress" hidden><strong data-i18n="liveActivity">Live activity</strong><p class="hint" id="progress-count"></p><ol id="activity-feed"></ol><p class="hint" id="progress-age"></p><p id="stall-warning" class="stall-warning" role="status" hidden></p></div><p id="completion-notice" role="status" hidden></p><button id="enable-notifications" data-i18n="enableNotifications">Enable desktop notifications</button><p id="notification-status" class="hint" role="status"></p><pre id="log" aria-live="polite"></pre><p class="hint" id="result-path"></p><p class="hint" data-i18n="readonlyLog">Session logs are shown in their original language.</p></section>
+      <section class="card" id="file-browser" hidden><h2 data-i18n="sessionTools">Session tools</h2>
+        <button id="tool-verify" class="session-operation" data-action="verify" data-i18n="verifySession"></button>
+        <div id="game-extraction" hidden><p data-i18n="extractHint"></p>
+        <button id="game-scan" data-i18n="gameScan"></button><label for="game-choice" data-i18n="gameChoice"></label><select id="game-choice"></select>
+        <label for="game-id" data-i18n="gameId"></label><input id="game-id" maxlength="18" placeholder="0100000000000000" autocomplete="off">
+        <button id="game-mount" data-i18n="gameMount"></button><button id="game-extract" data-i18n="gameExtract"></button><p id="game-selected" role="status"></p></div>
+        <details id="session-tools"><summary data-i18n="contentTools">NCA and system code</summary>
+        <div id="game-options"><label for="storage" data-i18n="storage">Storage</label><select id="storage"><option value="" data-i18n="allStorage">All available locations</option><option value="4" data-i18n="internal">Internal storage (USER)</option><option value="5" data-i18n="sd">SD card</option><option value="2" data-i18n="cart">Game card</option></select></div>
+        <div id="title-options"><label for="title" data-i18n="titleId">Title ID</label><textarea id="title" rows="4" placeholder="0100000000000000&#10;0100000000000001" maxlength="1300" spellcheck="false" autocomplete="off" aria-describedby="title-hint"></textarea><label for="version" data-i18n="version">Version (optional)</label><input id="version" placeholder="0" inputmode="numeric" autocomplete="off"><p id="title-hint" class="hint" data-i18n="titleHint">Use the title ID, storage and decimal version shown by the inventory.</p></div>
+        <div id="catalog-options"><label for="catalog-file" data-i18n="importCatalog">Import title names (JSON)</label><input id="catalog-file" type="file" accept=".json,application/json"><p class="hint" data-i18n="catalogHint">Local catalog. Importing replaces the previous catalog.</p><p class="hint" id="catalog-status" role="status"></p><label for="title-search" data-i18n="searchTitles">Search by name or TitleID</label><input id="title-search" type="search" autocomplete="off"><p class="hint" data-i18n="searchHint">Showing up to 50 matches. Check titles to add them to the selection.</p><div id="title-search-results"></div><ul id="title-preview" aria-live="polite"></ul></div>
+        <div id="sd-support-options"><button type="button" id="check-sd" data-i18n="checkSd">Check console SD support</button><p class="hint" data-i18n="sdCheckHint">Checks application support and saved inventory reports.</p><div id="sd-support-result" role="status" hidden></div></div>
+        <button class="session-operation" data-action="inventory" data-i18n="inventory"></button><button class="session-operation" data-action="probe" data-i18n="probe"></button><button class="session-operation" data-action="dump" data-i18n="dump"></button><button class="session-operation" data-action="firmware" data-i18n="firmware"></button></details>
+        <div id="raw-browser-hint"><p data-i18n="browserHint"></p><p class="hint" data-i18n="structureHint"></p></div><label for="file-source" data-i18n="storage"></label><select id="file-source"><option value="game" hidden data-i18n="gameFiles">Mounted game</option><option value="sd">SD</option><option value="user">USER</option><option value="system">SYSTEM</option></select>
+        <label for="file-path" data-i18n="filePath"></label><input id="file-path" value="/" autocomplete="off">
+        <button id="file-go" data-i18n="fileGo"></button><button id="file-up" data-i18n="fileUp"></button><button id="file-structure" data-i18n="fileStructure"></button><button id="file-finish" data-i18n="fileFinish"></button>
+        <p id="file-status" role="status"></p><button id="file-retry" hidden data-i18n="retry">Retry</button><p id="file-retry-hint" class="hint" role="status"></p><div id="file-entries"></div><button id="file-more" hidden data-i18n="fileMore"></button>
+      </section>
+      <section class="card"><div class="heading"><h2 data-i18n="historyTitle">Session history</h2><button id="refresh-history" data-i18n="refreshHistory">Refresh</button></div><p id="history-status" class="hint" role="status"></p><div id="history-runs"></div></section>
+    </div>
+  </div>
+  <footer><span><span data-i18n="credits">Credits</span> · <strong>vZyle</strong> · <strong>Aster</strong> · <strong>Hexa</strong> · <strong>pepsipu</strong> · <strong>kurumuz</strong> · <span id="build-info"></span> · OunceCake (GPLv2)</span><div><span data-i18n="local">Runs locally on your computer</span><button class="link" id="quit" data-i18n="quit">Close application</button></div></footer>
+</main><script src="/app.js"></script>
+</body></html>

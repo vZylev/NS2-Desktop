@@ -1,0 +1,14 @@
+{
+  "name": "ns2-desktop",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Local desktop interface and portable Windows build for the NS2 FS demo",
+  "scripts": {
+    "desktop": "node desktop/server.cjs",
+    "build:windows": "node desktop/build.cjs --target win-x64",
+    "test": "node --test test.cjs desktop/*.test.cjs engine/shared/*.test.cjs engine/switch2/game-export.test.cjs engine/switch2/memory/*.test.cjs engine/switch2/ro/layout.test.cjs engine/switch2/retained/*.test.cjs"
+  },
+  "devDependencies": {
+    "postject": "1.0.0-alpha.6"
+  }
+}

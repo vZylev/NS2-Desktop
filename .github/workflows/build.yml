@@ -1,0 +1,108 @@
+name: Build Windows release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: Test and build Windows x64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up the SEA-compatible Node runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Check version and release tag
+        run: |
+          node <<'JS'
+          const version = require('./package.json').version;
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw Error('Unsupported release version');
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== 'v' + version)
+            throw Error('Tag must match package.json: v' + version);
+          const lock = require('./package-lock.json');
+          if (lock.version !== version || lock.packages[''].version !== version)
+            throw Error('package-lock.json version differs; run npm install --package-lock-only');
+          JS
+
+      - name: Install locked build dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      # This repository already cross-builds its Windows SEA on Linux.
+      - name: Build portable Windows executable
+        run: npm run build:windows
+
+      - name: Package executable, source, licenses and checksums
+        run: python3 .github/scripts/package_release.py
+
+      - name: Upload downloadable build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: NS2-Desktop-windows-x64-${{ github.sha }}
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  release:
+    name: Publish tagged release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Download the tested build
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: NS2-Desktop-windows-x64-${{ github.sha }}
+          path: release
+
+      - name: Verify downloaded assets
+        working-directory: release
+        run: sha256sum --check SHA256SUMS
+
+      - name: Create and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$draft" != "true" ]]; then
+              echo "Release already published; its assets will not be replaced."
+              exit 0
+            fi
+          else
+            flags=()
+            if [[ "$RELEASE_TAG" == *-* ]]; then flags+=(--prerelease); fi
+            gh release create "$RELEASE_TAG" --verify-tag --draft --generate-notes \
+              --title "NS2 Desktop $RELEASE_TAG" "${flags[@]}"
+          fi
+          gh release upload "$RELEASE_TAG" release/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

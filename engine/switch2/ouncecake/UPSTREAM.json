@@ -1,0 +1,8 @@
+{
+  "project": "OunceCake",
+  "source": "OunceCake-main.zip",
+  "archiveSha256": "0572323f57bf54f0b9b475ee6762bfea0d670714da8da872c1b3f3fdf5eddc1a",
+  "archiveComment": "fab5954ebc9565160ac62999a1e743f34c7fe5dc",
+  "license": "GPL-2.0",
+  "integration": "NS2 Desktop"
+}
