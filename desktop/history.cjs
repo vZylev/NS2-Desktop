@@ -23,6 +23,7 @@ async function readJSON(file) {
   }
 }
 async function history(dataRoot, activeRun = '') {
+  const activeDirectory = activeRun ? await fs.realpath(activeRun).catch(() => '') : '';
   const root = path.join(dataRoot, 'runs');
   let dirs;
   try {dirs = await fs.readdir(root, {withFileTypes: true});} catch (error) {if (error.code === 'ENOENT') return []; throw error;}
@@ -35,7 +36,7 @@ async function history(dataRoot, activeRun = '') {
       readJSON(path.join(directory, 'games/game-export-batch.json')), readJSON(path.join(directory, 'games/game-export.json')),
       fs.stat(directory)
     ]);
-    const active = path.resolve(activeRun || '.') === directory;
+    const active = activeDirectory === directory;
     const titles = (Array.isArray(batch?.titles) ? batch.titles : (single?.selected?.key?.id ? [{title: single.selected.key.id,
       status: single.complete ? 'complete' : single.error ? 'failed' : 'running'}] :
       (Array.isArray(session?.titles) ? session.titles : []).map(title => ({title, status: 'pending'})))).map(row => {

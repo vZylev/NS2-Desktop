@@ -68,7 +68,7 @@ test('history, folder opening and ZIP API require auth and use recorded folders'
   assert.equal((await (await fetch(url('history'),{headers})).json()).runs.length,1);
   const body=JSON.stringify({id:'switch2-example',title:'010000000000000a'});
   assert.equal((await fetch(url('open-title'),{method:'POST',headers,body})).status,200);
-  assert.deepEqual(opened,[[path.join(run,'games/010000000000000a'),true]]);
+  assert.deepEqual(opened,[[await fs.realpath(path.join(run,'games/010000000000000a')),true]]);
   assert.equal((await fetch(url('open-title'),{method:'POST',headers,body:JSON.stringify({id:'switch2-example',title:'../../outside'})})).status,404);
   const zip=await fetch(url('logs?run=switch2-example'),{headers});
   assert.equal(zip.status,200);assert.equal(zip.headers.get('content-type'),'application/zip');
@@ -88,4 +88,26 @@ test('desktop persists selected pending titles and final status on exit',async t
   assert.deepEqual(result.runs[0].titles.map(x=>x.status),['pending','pending']);
   const stored=JSON.parse(await fs.readFile(path.join(run,'desktop-summary.json')));
   assert.equal(stored.status,'failed');assert.equal(stored.titles.length,2);
+});
+
+test('history and persisted status accept a canonical alias of the data root', async t => {
+  const {root, run} = await setup(t);
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'ns2-alias-'));
+  t.after(() => fs.rm(parent, {recursive: true, force: true}));
+  const alias = path.join(parent, 'data');
+  await fs.symlink(root, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const aliasedRun = path.join(alias, 'runs/switch2-example');
+  await json(path.join(run, 'desktop-summary.json'), {status: 'running'});
+  assert.equal((await history(alias, aliasedRun))[0].status, 'running');
+  const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+  const app = await createApp({dataRoot: alias, port: 0, runner: () => child});
+  t.after(() => {child.stdout.end(); child.stderr.end(); app.server.closeAllConnections(); app.server.close();});
+  const headers = {authorization: 'Bearer ' + app.token, 'Content-Type': 'application/json'};
+  await fetch(new URL('/api/start', app.url), {method: 'POST', headers,
+    body: JSON.stringify({mode: 'demo', host: '127.0.0.1'})});
+  child.stdout.write('Run folder: ' + aliasedRun + '\n');
+  await new Promise(setImmediate); child.emit('close', 1);
+  const report = await (await fetch(new URL('/api/history', app.url), {headers})).json();
+  assert.equal(report.runs[0].status, 'failed');
+  assert.equal(JSON.parse(await fs.readFile(path.join(run, 'desktop-summary.json'))).status, 'failed');
 });

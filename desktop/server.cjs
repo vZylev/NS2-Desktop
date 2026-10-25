@@ -102,7 +102,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
     const folder = state.runFolder;
     historyWrite = historyWrite.then(async () => {
       const directory = await runPath(dataRoot, path.basename(folder));
-      if (path.resolve(folder) !== directory) throw Error('invalidRun');
+      if (await fs.realpath(folder) !== directory) throw Error('invalidRun');
       await writeAtomic(path.join(directory, 'desktop-summary.json'), JSON.stringify(snapshot, null, 2) + '\n');
     }).catch(error => {state.historyError = error.message;});
   }

@@ -271,7 +271,7 @@ test('the engine has only local or Node dependencies, all present in the package
       if (!dependency.startsWith('.')) {
         assert.ok(dependency.startsWith('node:'), name + ': external dependency ' + dependency);
       } else {
-        const relative = path.relative(root, path.resolve(root, path.dirname(name), dependency));
+        const relative = path.relative(root, path.resolve(root, path.dirname(name), dependency)).split(path.sep).join('/');
         assert.ok(present.has(relative) || generated.has(relative), name + ': missing ' + relative);
       }
     }
