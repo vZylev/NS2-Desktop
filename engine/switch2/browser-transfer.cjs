@@ -43,7 +43,7 @@ async function exportGame(backend, output, progress = () => {}) {
   const directory = await fs.mkdtemp(path.join(output, backend.selected.title + '-'));
   const file = path.join(directory, 'extraction.json');
   const report = {engine: 'OunceCake', started: new Date().toISOString(), game: backend.selected,
-    absentSources: backend.absentSources, complete: false, files: [], directories: []};
+    absentSources: backend.absentSources, skippedSources: backend.skippedSources || [], complete: false, files: [], directories: []};
   const save = () => writeAtomic(file, JSON.stringify(report, null, 2));
   await save();
   try {
@@ -65,8 +65,8 @@ async function exportGame(backend, output, progress = () => {}) {
       report.files.push({path: row.path, localPath: row.relative, sizeBytes: String(result.size), sha256: result.sha256, metadata: row.metadata});
       await save();
     }
-    report.complete = true; report.completed = new Date().toISOString(); await save();
-    return {file, directory, complete: true, files: report.files.length};
+    report.complete = report.skippedSources.length === 0; report.completed = new Date().toISOString(); await save();
+    return {file, directory, complete: report.complete, skippedSources: report.skippedSources, files: report.files.length};
   } catch (error) {report.error = error.message; await save(); throw error;}
 }
 module.exports = {capture, exportGame, localPath};

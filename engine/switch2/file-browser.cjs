@@ -34,7 +34,7 @@ async function main(proofFile, options = {}) {
   const server = http.createServer(async (req, res) => {
     const send = (code, value) => {res.writeHead(code, {'Content-Type': 'application/json'}); res.end(JSON.stringify(value));};
     if (req.headers.authorization !== 'Bearer ' + token) return send(401, {error: 'Unauthorized'});
-    if (req.method === 'GET') return send(200, {ready: true, busy, selected: game?.selected || null,
+    if (req.method === 'GET') return send(200, {ready: true, busy, selected: game?.selected || null, skippedSources: game?.skippedSources || [],
       retryable: !!lastFailure && !lastFailure.uncertain, lastError: lastFailure?.message || '', lastAction: lastFailure?.input.action || ''});
     if (busy) return send(409, {error: 'Browser busy', retryable: false, busy: true});
     busy = true;
@@ -84,7 +84,7 @@ async function main(proofFile, options = {}) {
         const result = await require('./file-structure.cjs').exportStructure({request,
           output: path.join(directory, '../inventories'), catalog,
           sources: useGame ? ['game'] : undefined, pathValidator,
-          context: useGame && game ? {engine: 'OunceCake', game: game.selected, absentSources: game.absentSources} : undefined,
+          context: useGame && game ? {engine: 'OunceCake', game: game.selected, absentSources: game.absentSources, skippedSources: game.skippedSources} : undefined,
           progress: row => console.log('Files: inventory ' + row.source + ':' + row.path +
             ' — ' + row.files + ' files, ' + row.directories + ' folders, ' + row.errors + ' errors')});
         respond(200, result); return;

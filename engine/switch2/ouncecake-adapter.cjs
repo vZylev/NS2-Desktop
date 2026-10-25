@@ -48,11 +48,11 @@ function createBackend(run, dependencies = {}) {
   const attach = dependencies.attach || require('./ouncecake/engine/session.cjs').attachGame;
   const discover = dependencies.discover || require('./ouncecake/engine/content.cjs').discoverGames;
   const prepare = dependencies.prepare || require('./ouncecake/engine/mounts.cjs').prepareGame;
-  let attachment, games = [], index, selected, absentSources = [];
+  let attachment, games = [], index, selected, absentSources = [], skippedSources = [];
   async function ensure() {return attachment ||= await attach(run);}
   async function close() {
     if (attachment) {await attachment.close(); attachment = null;}
-    index = null; selected = null; absentSources = [];
+    index = null; selected = null; absentSources = []; skippedSources = [];
   }
   async function request(command, input = {}) {
     if (command === 'games') {games = await discover(await ensure()); return {games};}
@@ -60,9 +60,22 @@ function createBackend(run, dependencies = {}) {
       const title = titleId(input.title);
       await close();
       const candidate = games.find(game => game.title === title) || {title, name: null};
-      const prepared = await prepare({attachment: await ensure(), title, keepDlcOpen: true});
+      let prepared;
+      try {
+        prepared = await prepare({attachment: await ensure(), title, keepDlcOpen: true});
+      } catch (error) {
+        if (error.nativeResult && !error.nativeUncertain) {
+          try { await close(); }
+          catch (cleanupError) {
+            throw Object.assign(new AggregateError([error, cleanupError],
+              error.message + '\nCleanup failed: ' + cleanupError.message), {nativeUncertain: true});
+          }
+        }
+        throw error;
+      }
       index = createIndex(prepared, candidate); selected = candidate; absentSources = prepared.absentSources || [];
-      return {selected, files: [...index.rows.values()].filter(row => row.type === 1).length, absentSources};
+      skippedSources = prepared.skippedSources || [];
+      return {selected, skippedSources, files: [...index.rows.values()].filter(row => row.type === 1).length, absentSources};
     }
     if (command === 'close') {await close(); return {closed: true};}
     if (command === 'mount') return {source: 'game', available: !!index, result: index ? 0 : 'Select a game first'};
@@ -95,6 +108,6 @@ function createBackend(run, dependencies = {}) {
     return {size, offset, length, base64: bytes.toString('base64'), sha256: crypto.createHash('sha256').update(bytes).digest('hex')};
   }
   return {request, close, get selected() {return selected;}, get entries() {return index ? [...index.rows.values()] : [];},
-    get absentSources() {return absentSources;}, validatePath: gamePath};
+    get absentSources() {return absentSources;}, get skippedSources() {return skippedSources;}, validatePath: gamePath};
 }
 module.exports = {createBackend, createIndex, gamePath};

@@ -457,12 +457,14 @@ function buildIndex(views) {
   return bytes;
 }
 
-async function prepareGame({ attachment: a, title, shouldStop = () => false, keepDlcOpen = false }) {
+async function prepareGame({ attachment: a, title, shouldStop = () => false, keepDlcOpen = false }, dependencies = {}) {
   const views = [];
   const sources = [];
   const absentSources = [];
+  const skippedSources = [];
+  let mountedUpdate = false;
   const prepared = new Set();
-  const files = createGameFiles(a);
+  const files = (dependencies.createGameFiles || createGameFiles)(a);
 
   const cancelled = () => throwIfCancelled(shouldStop);
 
@@ -522,7 +524,7 @@ async function prepareGame({ attachment: a, title, shouldStop = () => false, kee
         mounted = await open({ section, ...candidate });
         break;
       } catch (error) {
-        if (!error.nativeResult || error.code === 'FTP_CANCELLED') throw error;
+        if (error.nativeUncertain || !error.nativeResult || error.code === 'FTP_CANCELLED') throw error;
 
         if (
           allowAbsent &&
@@ -538,10 +540,14 @@ async function prepareGame({ attachment: a, title, shouldStop = () => false, kee
       }
     }
 
-    if (!mounted)
-      throw new Error(
-        'Could not prepare ' + prefix + '/' + section + ': ' + (lastError?.message || 'No installed content'),
-      );
+    if (!mounted) {
+      // Keep the native result: a rejected IPC request is not a lost transport.
+      if (lastError) {
+        lastError.message = 'Could not prepare ' + prefix + '/' + section + ': ' + lastError.message;
+        throw lastError;
+      }
+      throw new Error('Could not prepare ' + prefix + '/' + section + ': No installed content');
+    }
 
     const entries =
       mounted.kind === 'storage'
@@ -588,10 +594,10 @@ async function prepareGame({ attachment: a, title, shouldStop = () => false, kee
 
   cancelled();
 
-  const updates = await discoverUpdates({ ...a, title });
+  const updates = await (dependencies.discoverUpdates || discoverUpdates)({ ...a, title });
   cancelled();
 
-  const dlc = await discoverDlc({ ...a, title });
+  const dlc = await (dependencies.discoverDlc || discoverDlc)({ ...a, title });
   const installed = [4, 5, 2].map((storage) => ({ storage }));
   const base = await mountView('/base', 'romfs', installed, true);
   await mountView(
@@ -607,12 +613,27 @@ async function prepareGame({ attachment: a, title, shouldStop = () => false, kee
       storage: item.storage,
       update: { contentTitle: item.contentTitle, version: item.version },
     }));
-    const update = await mountView(prefix, 'romfs', candidates);
+    let update;
+    try {
+      update = await mountView(prefix, 'romfs', candidates);
+    } catch (error) {
+      // An additional installed patch must not discard a fully mounted patch.
+      // Only tolerate an explicit ES license rejection, never transport/cleanup failures.
+      if (error.nativeUncertain || ![0x691, 0x1491].includes(error.nativeResult?.canonical) ||
+          !mountedUpdate) throw error;
+      skippedSources.push({path: prefix, contentTitle: group[0].contentTitle,
+        version: group[0].version, storages: group.map(item => item.storage),
+        reason: 'additional-update-license-unavailable', error: error.message,
+        nativeResult: error.nativeResult});
+      console.log('Skipped additional update ' + prefix + ': ' + error.message);
+      continue;
+    }
     await mountView(
       prefix,
       'exefs',
       candidates.filter((candidate) => candidate.storage === update.source.storage),
     );
+    mountedUpdate = true;
   }
 
   for (const group of groups(dlc)) {
@@ -672,7 +693,7 @@ async function prepareGame({ attachment: a, title, shouldStop = () => false, kee
     }
   }
 
-  return { index: buildIndex(views), sources, views, absentSources };
+  return { index: buildIndex(views), sources, views, absentSources, skippedSources };
 }
 
 module.exports = { prepareGame, readRomfs, buildIndex };

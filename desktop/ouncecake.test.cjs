@@ -153,3 +153,97 @@ test('authenticated browser serves OunceCake selection, structure, full extracti
   assert.equal((await running).complete, true);
   assert.ok(calls.some(row => row[0] === 'cleanup'));
 });
+
+function patchFixture({error, newer = true, differentTitle = false} = {}) {
+  const {resultError} = require('../engine/switch2/ouncecake/engine/protocol.cjs');
+  const title = '0100000000000001', patch = '0100000000000801';
+  const updates = [...(newer ? [{contentTitle: patch, version: 1114112, storage: 4}] : []),
+    {contentTitle: differentTitle ? '0100000000000802' : patch, version: 786432, storage: 5}];
+  const failure = error || resultError('ES prepare installed title license', 0x691);
+  const opened = [], pinned = [];
+  const source = (version, storage) => ({contentTitle: version ? patch : title,
+    version, storage, metaType: version ? 0x81 : 0x80, contentType: 1, contentId: 'a'.repeat(32)});
+  const dependencies = {
+    discoverUpdates: async () => updates, discoverDlc: async () => [],
+    createGameFiles: () => ({open: async options => {
+      opened.push(options);
+      if (options.update?.version === 786432) throw failure;
+      return {kind: 'filesystem', handle: opened.length + 10,
+        source: source(options.update?.version || 0, options.storage)};
+    }, list: async () => [], close: async () => {}}),
+  };
+  let contentTitle;
+  const attachment = {service: async () => 1, domain: {oneHandle: () => 2}, s: {
+    close: async () => {}, ipc: async (label, handle, command, input) => {
+      if (command === 5) {pinned.push(input[0]); return {result: 0};}
+      if (command === 6) {
+        contentTitle = input.readBigUInt64LE().toString(16).padStart(16, '0');
+        const data = Buffer.alloc(16); data.writeUInt32LE(contentTitle === patch ? 1114112 : 0, 8);
+        data[12] = contentTitle === patch ? 0x81 : 0x80; return {result: 0, data};
+      }
+      return {result: 0, data: Buffer.from('a'.repeat(32), 'hex')};
+    },
+  }};
+  return {title, attachment, dependencies, failure, opened, pinned};
+}
+test('BOTW log sequence retains the newer patch when the older patch rejects its license', async () => {
+  const f = patchFixture();
+  const result = await require('../engine/switch2/ouncecake/engine/mounts.cjs').prepareGame(f, f.dependencies);
+  assert.deepEqual(result.views.map(view => view.path), ['/base/romfs', '/base/exefs', '/updates/1114112/romfs', '/updates/1114112/exefs']);
+  assert.equal(result.skippedSources.length, 1);
+  assert.equal(result.skippedSources[0].path, '/updates/786432');
+  assert.equal(result.skippedSources[0].nativeResult.canonical, 0x691);
+  assert.ok(!f.pinned.includes(5));
+});
+test('a missing sole patch license still fails with its native result', async () => {
+  for (const options of [{newer: false}]) {
+    const f = patchFixture(options);
+    await assert.rejects(require('../engine/switch2/ouncecake/engine/mounts.cjs').prepareGame(f, f.dependencies), error => {
+      assert.equal(error, f.failure); assert.equal(error.nativeResult.canonical, 0x691);
+      assert.match(error.message, /Could not prepare \/updates\/786432\/romfs/); return true;
+    });
+  }
+});
+test('older patch transport, cleanup and unrelated native failures are never skipped', async () => {
+  const {resultError} = require('../engine/switch2/ouncecake/engine/protocol.cjs');
+  for (const error of [Error('Transport lost'), resultError('Read', 0x320002),
+    Object.assign(resultError('License', 0x691), {nativeUncertain: true})]) {
+    const f = patchFixture({error});
+    await assert.rejects(require('../engine/switch2/ouncecake/engine/mounts.cjs').prepareGame(f, f.dependencies), actual => actual === error);
+  }
+});
+test('partial game extraction and structure report every skipped update and never claim completion', async t => {
+  const {backend, prepared, title} = fixture();
+  prepared.skippedSources = [{path: '/updates/786432', version: 786432, nativeResult: {canonical: 0x691}}];
+  const selected = await backend.request('select', {title});
+  assert.deepEqual(selected.skippedSources, prepared.skippedSources);
+  const folder = await output(t);
+  const result = await exportGame(backend, folder);
+  assert.equal(result.complete, false); assert.equal(result.files, 3);
+  const report = JSON.parse(await fs.readFile(result.file));
+  assert.equal(report.complete, false); assert.deepEqual(report.skippedSources, prepared.skippedSources);
+  const structure = await exportStructure({request: backend.request, output: folder, sources: ['game'],
+    pathValidator: gamePath, context: {skippedSources: backend.skippedSources}});
+  assert.equal(structure.complete, false);
+  assert.equal(JSON.parse(await fs.readFile(structure.file)).complete, false);
+});
+test('recoverable failed preparation releases owned handles, while uncertainty does not issue cleanup calls', async () => {
+  const {resultError} = require('../engine/switch2/ouncecake/engine/protocol.cjs');
+  for (const uncertain of [false, true]) {
+    let closed = 0;
+    const error = uncertain ? Error('Transport lost') : resultError('License', 0x691);
+    const backend = createBackend('/unused', {attach: async () => ({close: async () => {closed++;}}),
+      prepare: async () => {throw error;}});
+    await assert.rejects(backend.request('select', {title: '0100000000000001'}), actual => actual === error);
+    assert.equal(closed, uncertain ? 0 : 1); assert.equal(backend.selected, null);
+  }
+});
+
+// Switch 2 edition patches can have a different content title from other patches
+// belonging to the same application; native resolution checks their owner.
+test('additional patch content titles do not discard an already mounted application patch', async () => {
+  const f = patchFixture({differentTitle: true});
+  const result = await require('../engine/switch2/ouncecake/engine/mounts.cjs').prepareGame(f, f.dependencies);
+  assert.equal(result.skippedSources.length, 1);
+  assert.equal(result.views.length, 4);
+});

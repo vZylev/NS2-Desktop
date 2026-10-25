@@ -13,6 +13,8 @@ const I18N = {
     gameScan: 'Scan installed games', gameChoice: 'Installed game', gameId: 'TitleID to mount', gameMount: 'Mount game', gameExtract: 'Extract all files to PC', gameFiles: 'Mounted game',
     gameSelected: 'Mounted game: ', gameSelectFirst: 'Select a game and click Mount game.', gameScanDone: 'Games found: ',
 
+    gamePartial: 'Some additional updates could not be mounted. Available files can still be extracted; exports will be marked partial. Unavailable: ',
+    extractionIncomplete: 'Partial extraction saved; see extraction.json for unavailable updates: ',
     fileStructure: 'Export structure', structureHint: 'Export a recursive JSON inventory of SD, USER and SYSTEM, including sizes, available title labels and inaccessible paths. No file contents are downloaded.', structureIncomplete: 'Inventory saved with inaccessible or unscanned paths: ',
 
     browse: 'Explore console files', help_browse: 'Keep a session open to browse accessible SD, USER and SYSTEM folders and download individual files to this PC.',
@@ -109,6 +111,8 @@ const I18N = {
     gameScan: 'Buscar juegos instalados', gameChoice: 'Juego instalado', gameId: 'TitleID para montar', gameMount: 'Montar juego', gameExtract: 'Extraer todos los archivos a la PC', gameFiles: 'Juego montado',
     gameSelected: 'Juego montado: ', gameSelectFirst: 'Elegí un juego y pulsá Montar juego.', gameScanDone: 'Juegos encontrados: ',
 
+    gamePartial: 'No se pudieron montar algunas actualizaciones adicionales. Podés extraer los archivos disponibles; la exportación se marcará como parcial. No disponibles: ',
+    extractionIncomplete: 'Extracción parcial guardada; consultá extraction.json para ver las actualizaciones no disponibles: ',
     fileStructure: 'Exportar estructura', structureHint: 'Guarda un inventario JSON recursivo de SD, USER y SYSTEM, con tamaños, títulos disponibles y rutas inaccesibles. No descarga el contenido de los archivos.', structureIncomplete: 'Inventario guardado con rutas inaccesibles o sin recorrer: ',
 
     browse: 'Explorar archivos de la consola', help_browse: 'Mantené una sesión abierta para explorar las carpetas accesibles de SD, USER y SYSTEM y descargar archivos a esta PC.',
@@ -259,6 +263,10 @@ if (typeof document !== 'undefined') {
   }
   let browserBusy = false, browserReady = false, browserStarted = null, fileNext = null, listedPath = '/', listedSource = 'sd', gameMounted = false;
   let remoteBusy = false, retryable = false, pendingRetry = null;
+  function gameWarning(sources = []) {
+    $('game-warning').hidden = sources.length === 0;
+    $('game-warning').textContent = sources.length ? t('gamePartial') + sources.map(source => source.path).join(', ') : '';
+  }
   function browserControls() {
     for (const id of ['file-source', 'file-path', 'file-go', 'file-up', 'file-finish', 'file-more', 'file-structure'])
       $(id).disabled = browserBusy || remoteBusy || !browserReady || ($('file-source').value === 'game' && !gameMounted && !['file-finish', 'file-source'].includes(id));
@@ -290,7 +298,7 @@ if (typeof document !== 'undefined') {
         if (value.games.length) $('game-id').value = value.games[0].title;
         $('file-status').textContent = t('gameScanDone') + value.games.length;
       } else if (action === 'select') {
-        gameMounted = true; $('game-selected').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
+        gameMounted = true; gameWarning(value.skippedSources); $('game-selected').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
         $('file-source').value = 'game'; $('file-path').value = '/'; $('file-entries').replaceChildren(); $('file-more').hidden = true;
         $('file-status').textContent = t('gameSelected') + (value.selected.name || value.selected.title);
       } else if (action === 'list') {
@@ -308,7 +316,7 @@ if (typeof document !== 'undefined') {
         fileNext = value.next; $('file-more').hidden = fileNext === null;
         $('file-status').textContent = !value.entries.length && !request.append ? t('fileEmpty') : listedSource + ':' + listedPath;
       } else if (action === 'verify') $('file-status').textContent = t('sessionVerified');
-      else $('file-status').textContent = t(value.complete === false ? 'structureIncomplete' : 'fileSaved') + (value.directory || value.file || '');
+      else $('file-status').textContent = t(value.complete === false ? (action === 'extract-all' ? 'extractionIncomplete' : 'structureIncomplete') : 'fileSaved') + (value.directory || value.file || '');
       loadHistory();
     } catch (error) {
       retryable = error.retryable === true;
@@ -351,7 +359,7 @@ if (typeof document !== 'undefined') {
     }
     if (!['browse', 'extract', 'session'].includes(current.mode) || !current.active) {browserReady = false; browserControls(); return;}
     const result = await api('browser?details=1'); browserReady = result.ready; remoteBusy = !!result.busy;
-    gameMounted = !!result.selected;
+    gameMounted = !!result.selected; gameWarning(result.skippedSources);
     if (result.selected) $('game-selected').textContent = t('gameSelected') + (result.selected.name || result.selected.title);
     if (!browserBusy) {
       retryable = !!result.retryable;

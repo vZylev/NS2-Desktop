@@ -11,6 +11,15 @@ Changes made on 2026-10-25:
   PC reads, rather than deferred opening in the native FTP server. Additional
   size, directory-name, count and short-read validation was added, along with
   checks that installed source content has not changed during preparation.
+- mounts.cjs retains native error results so service rejections remain retryable.
+  If an additional update returns ES 0x691 or 0x1491 after another update has
+  mounted both RomFS and ExeFS, the accessible views are retained and the rejected
+  update is listed in skippedSources. Transport and cleanup failures still abort.
+  The desktop displays omitted paths and marks extraction and structure reports
+  incomplete. This covers the supplied BOTW log sequence (1114112 mounted,
+  786432 rejected); it does not repair or bypass the rejected license.
+- The desktop adapter releases owned mounts after a recoverable preparation
+  failure, before allowing another attempt.
 - session.cjs checks attachment identity and rejects failed SM transports.
 - content.cjs checks NCM counts, selected versions and application ownership,
   and rejects malformed content paths.

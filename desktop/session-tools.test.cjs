@@ -165,3 +165,26 @@ test('an idle retained session is not reported as stalled while waiting for the 
   const working = await (await fetch(base + '/api/state', {headers})).json();
   assert.equal(working.toolsBusy, true); assert.equal(working.progress.stalled, true);
 });
+
+test('license rejection keeps the session usable, cleans partial mounts, and offers Retry', async t => {
+  const {createBackend} = require('../engine/switch2/ouncecake-adapter.cjs');
+  const {resultError} = require('../engine/switch2/ouncecake/engine/protocol.cjs');
+  let attempts = 0, cleanups = 0;
+  const gameBackend = createBackend('/unused', {
+    attach: async () => ({close: async () => {cleanups++;}}),
+    prepare: async () => {
+      if (++attempts === 1) throw resultError('Could not prepare /updates/786432/romfs: ES prepare installed title license', 0x691);
+      return {views: [], sources: []};
+    },
+  });
+  const memory = {info: {session: 'test'}, reportFile: 'report', request: async input =>
+    input.command.endsWith('-mount') ? {available: true} : {entries: [], next: null}};
+  const {call, running} = await session(t, {gameBackend, memory});
+  const failed = await call({action: 'select', title: '0100000000000001'});
+  assert.equal(failed.value.retryable, true); assert.equal(cleanups, 1);
+  assert.equal((await call()).value.ready, true);
+  assert.equal((await call({action: 'retry'})).status, 200);
+  assert.equal((await call({action: 'list', source: 'sd', path: '/'})).status, 200);
+  assert.equal((await call({action: 'finish'})).status, 200);
+  await running;
+});

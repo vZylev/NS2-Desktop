@@ -83,12 +83,12 @@ async function exportStructure({request, output, catalog = {}, progress = () => 
       fatal = error;
       await recordError(currentSource, currentPath, error.message);
     }
-    const complete = !fatal && storages.length === sources.length && storages.every(item => item.complete);
+    const complete = !fatal && !(context?.skippedSources?.length) && storages.length === sources.length && storages.every(item => item.complete);
     await write('\n],\n' + JSON.stringify({completed: new Date().toISOString(), complete, storages, summary}).slice(1));
     await handle.sync();
   } finally {await handle.close();}
   await fs.rename(temporary, file);
   if (fatal) {fatal.message += ' (Partial inventory: ' + file + ')'; throw fatal;}
-  return {file, complete: storages.every(item => item.complete), summary};
+  return {file, complete: !(context?.skippedSources?.length) && storages.every(item => item.complete), summary};
 }
 module.exports = {exportStructure, metadata};
