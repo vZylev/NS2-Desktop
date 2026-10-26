@@ -74,11 +74,15 @@ async function main(args = process.argv.slice(2)) {
     for (const entry of await fs.readdir(path.join(ROOT, folder), {withFileTypes: true})) {
       const name = folder + '/' + entry.name;
       if (entry.isDirectory()) await walk(name);
-      else if (entry.isFile() && !entry.name.endsWith('.test.cjs') && !['build.cjs', 'launcher.cjs', 'smoke-build.cjs'].includes(entry.name))
+      else if (entry.isFile() && !entry.name.endsWith('.test.cjs') && !['build.cjs', 'launcher.cjs', 'smoke-build.cjs', 'build-autotyper.cjs'].includes(entry.name))
         files.push([name, (await fs.readFile(path.join(ROOT, name))).toString('base64')]);
     }
   }
   await walk('engine'); await walk('desktop');
+  if (target === 'darwin-arm64') {
+    const native = await require('./build-autotyper.cjs').buildAutotyper(ROOT, path.join(build, 'autotyper'));
+    for (const [name, file] of native) files.push([name, (await fs.readFile(file)).toString('base64')]);
+  }
   files.push(['NODE-LICENSE.txt', license.toString('base64')]);
   const compress = bytes => zlib.brotliCompressSync(bytes, {params: {[zlib.constants.BROTLI_PARAM_QUALITY]: 5}});
   const application = compress(Buffer.from(JSON.stringify(files)));

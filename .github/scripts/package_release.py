@@ -53,6 +53,9 @@ def licenses(folder):
     folder.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / 'dist/NODE-LICENSE.txt', folder / 'NODE-LICENSE.txt')
     shutil.copy2(ROOT / 'engine/switch2/ouncecake/LICENSE', folder / 'OUNCECAKE-LICENSE.txt')
+    for source, name in [('LICENSE', 'MAC2JB-LICENSE.txt'), ('vendor/libusbd/LICENSE', 'LIBUSBD-LICENSE.txt'),
+                         ('vendor/libusbd/LICENSE-APSL-2.0.txt', 'LIBUSBD-APSL-2.0.txt')]:
+        shutil.copy2(ROOT / 'desktop/vendor/mac2jb' / source, folder / name)
 
 
 def binary(source, target):
@@ -141,7 +144,7 @@ Name: ns2-desktop
 Version: ''' + rpm_version + '''
 Release: ''' + release + '''
 Summary: Graphical console file browser and extraction tools
-License: GPL-2.0-only AND MIT
+License: GPL-2.0-only AND MIT AND APSL-2.0
 URL: https://github.com/vZylev/NS2-Desktop
 BuildArch: x86_64
 AutoReqProv: no

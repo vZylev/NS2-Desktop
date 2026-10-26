@@ -87,10 +87,11 @@ async function jsonBody(req, limit = 8192) {
 
 async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 39381,
   runner = spawn, launchBrowser = false, opener = openExternal,
-  standby = false, primaryPort = 39381, now = Date.now} = {}) {
+  standby = false, primaryPort = 39381, now = Date.now, autotyper = null} = {}) {
   dataRoot = path.resolve(dataRoot);
   await fs.mkdir(dataRoot, {recursive: true, mode: 0o700});
   const token = crypto.randomBytes(32).toString('hex');
+  const typer = autotyper || require('./autotyper.cjs').createAutotyper();
   let child = null, lastSuccessfulHost = '', nextId = 0, closing = false, takingOver = false, boundPort = port;
   let historyWrite = Promise.resolve(), zipBusy = false, lastInput = null;
   const state = {titles: [], historyError: '', status: 'idle', stage: '', command: '', runFolder: '', lines: [],
@@ -130,6 +131,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
     }
   }
   function start(input) {
+    if (typer.busy) throw Error('autoBusy');
     if (standby) throw Error('otherInstanceOpen');
     if (closing) throw Error('applicationClosing');
     if (child) throw Error('alreadyActive');
@@ -189,8 +191,20 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
           appVersion: APP_VERSION, buildId: BUILD_ID.slice(0, 12), standby, takingOver,
           previousInstance: previous ? {active: previous.state.active,
             appVersion: previous.state.appVersion || '', buildId: previous.state.buildId || ''} : null,
-          canRetrySession: !!lastInput && !child && state.status === 'failed' && !state.consoleConnected,
-          active: !!child, lines: state.lines.filter(line => line.id > Number(url.searchParams.get('after') || 0))});
+          canRetrySession: !!lastInput && !child && !typer.busy && state.status === 'failed' && !state.consoleConnected,
+          active: !!child || typer.busy, consoleActive: !!child, autotyper: typer.snapshot(), lines: state.lines.filter(line => line.id > Number(url.searchParams.get('after') || 0))});
+      }
+      if (url.pathname === '/api/autotyper') {
+        if (req.method === 'GET') return send(200, typer.snapshot());
+        if (req.method === 'POST') {
+          if (standby || closing || takingOver) return send(409, {error: 'otherInstanceOpen'});
+          const input = await jsonBody(req);
+          if (input.action === 'stop') return send(200, typer.stop());
+          if (child) return send(409, {error: 'alreadyActive'});
+          if (input.action === 'check') return send(200, await typer.check());
+          if (input.action === 'start') return send(200, await typer.start(input));
+          return send(400, {error: 'autoInvalidAction'});
+        }
       }
       if (url.pathname === '/api/browser' && ['GET', 'POST'].includes(req.method)) {
         let endpoint;
@@ -268,6 +282,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
       if (req.method === 'POST' && url.pathname === '/api/start') {start(await jsonBody(req)); return send(200, {started: true});}
       if (req.method === 'POST' && url.pathname === '/api/output') {openExternal(dataRoot, true); return send(200, {opened: true});}
       if (req.method === 'POST' && url.pathname === '/api/quit') {
+        if (typer.busy) return send(409, {error: 'autoBusy'});
         if (child) return send(409, {error: 'alreadyActive'});
         closing = true;
         send(200, {closed: true}); server.close(); return;
@@ -309,6 +324,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
   await new Promise((resolve, reject) => {
     server.once('error', reject); server.listen(port, '127.0.0.1', resolve);
   });
+  server.once('close', () => typer.stop());
   boundPort = server.address().port;
   const url = 'http://127.0.0.1:' + boundPort + '/?launch=' + crypto.randomUUID() + '#' + token;
   const sessionFile = path.join(dataRoot, 'desktop-session.json');
@@ -317,7 +333,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
   console.log('NS2 Desktop: ' + url);
   console.log('Resultados: ' + dataRoot);
   if (launchBrowser) opener(url);
-  return {server, url, token, state, get active() {return !!child;}};
+  return {server, url, token, state, get active() {return !!child || typer.busy;}};
 }
 
 async function launchDesktop({dataRoot, port = 39381, launchBrowser = true, opener = openExternal, runner = spawn}) {

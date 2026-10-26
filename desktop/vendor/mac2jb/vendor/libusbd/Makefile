@@ -1,0 +1,46 @@
+# mac2jb downstream modification notice (libusbd build configuration)
+#
+# Modified by: cpypwn (mac2jb integration)
+# 2026-10-22: Added the @rpath/libusbd.dylib install name to the
+#             macOS linker flags so mac2jb can load the local dylib.
+#
+# Based on: https://github.com/shinyquagsire23/libusbd
+# Original upstream copyright and license terms are preserved.
+
+TARGET = libusbd.dylib
+
+DEBUG   ?= 0
+ARCH    ?= arm64
+SDK     ?= macosx
+
+SYSROOT  := $(shell xcrun --sdk $(SDK) --show-sdk-path)
+ifeq ($(SYSROOT),)
+$(error Could not find SDK "$(SDK)")
+endif
+CLANG    := clang
+CC       := $(CLANG) -isysroot $(SYSROOT) -arch $(ARCH)
+
+#CFLAGS  = -O1 -Wall -g -fstack-protector-all -fsanitize=address -fsanitize=float-divide-by-zero -fsanitize=leak
+#LDFLAGS = -fsanitize=address -fsanitize=float-divide-by-zero -static-libsan -fsanitize=leak
+
+CFLAGS  = -O1 -Wall -g -fstack-protector-all -I include/ -I src/
+LDFLAGS = -shared -Wl,-install_name,@rpath/libusbd.dylib -Wl,-undefined -Wl,dynamic_lookup -lpthread
+
+ifneq ($(DEBUG),0)
+DEFINES += -DDEBUG=$(DEBUG)
+endif
+
+FRAMEWORKS = -framework CoreFoundation -framework IOKit
+
+SOURCES = src/libusbd.c src/plat/macos/impl.c src/plat/macos/alt_IOUSBDeviceControllerLib.c
+
+HEADERS = include/libusbd.h src/libusbd_priv.h
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCES) $(HEADERS)
+	$(CC) $(CFLAGS) $(FRAMEWORKS) $(DEFINES) $(LDFLAGS) -o $@ $(SOURCES)
+	codesign -s - $@
+
+clean:
+	rm -f -- $(TARGET)

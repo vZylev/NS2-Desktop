@@ -13,6 +13,13 @@ async function main() {
   try {
     const {stdout} = await promisify(execFile)(executable, ['--self-test'], {env, timeout: 120000});
     assert.ok(stdout.includes('v' + (await fs.readFile(path.join(__dirname, '../.node-version'), 'utf8')).trim()));
+    if (process.platform === 'darwin' && process.arch === 'arm64') {
+      const folder = (await fs.readdir(home)).find(name => name.startsWith('app-darwin-arm64-'));
+      assert.ok(folder);
+      const app = path.join(home, folder);
+      const result = await promisify(execFile)(path.join(app, 'desktop/native/mac2jb-send'), [path.join(app, 'bootstrap.bas'), '--dry-run'], {timeout: 15000});
+      assert.match(result.stdout, /no USB device created and no keys sent/);
+    }
     child = spawn(executable, ['--no-browser'], {env, stdio: ['ignore', 'pipe', 'pipe']});
     let output = '', stderr = '', failure;
     child.stdout.on('data', chunk => {output += chunk;});

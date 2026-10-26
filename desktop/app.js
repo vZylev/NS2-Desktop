@@ -84,6 +84,17 @@ const I18N = {
     titleId: 'Title IDs', version: 'Version (optional)', titleHint: 'Enter up to 64 title IDs, separated by lines or commas. Duplicates are removed. Storage and optional decimal version apply to every title; leave version empty when versions differ.',
     start: 'Start a new session', requirements: 'Before you start',
     requirementsText: 'SmileBASIC 4.4.9 · System 23.0.1 · More than 20 MiB free in the SmileBASIC save. Keep the session open while using its tools.',
+    autoTitle: 'USB bootstrap autotyper', autoIntro: 'Optional mac2jb USB keyboard sender for compatible Apple Silicon Macs. Types this application’s bootstrap.bas into SmileBASIC; it does not press RUN.',
+    autoDriverNote: 'Requires a compatible usbgadget driver already installed, approved and loaded. The upstream driver may require changes to SIP/startup security that reduce Mac protection. NS2 Desktop does not install it or change those settings.',
+    autoDriverGuide: 'mac2jb driver setup and hardware requirements', autoSteps: 'Connect a USB data cable to the console. Open SmileBASIC → Make a program with an empty editor in slot 0. Set the console USB keyboard layout to US English. Typing can take several minutes.',
+    autoController: 'USB controller', autoDetect: 'Automatic', autoSpeed: 'Typing speed', autoNormal: 'Normal (50 ms)', autoSlow: 'Slow (100 ms)', autoVerySlow: 'Very slow (200 ms)',
+    autoConfirm: 'The console editor is empty and its USB keyboard layout is US English.', autoCheck: 'Check driver', autoStart: 'Type bootstrap', autoStop: 'Stop typing', autoLines: 'Lines sent:', autoLineUnit: 'lines',
+    autoUnsupported: 'USB autotyping is available only in the Apple Silicon macOS build. This method does not support Windows, Linux or Intel Macs.',
+    autoUnchecked: 'Check the driver before typing.', autoChecking: 'Checking the bundled sender and loaded driver…',
+    autoMissingHelper: 'The USB sender is missing. Use the Apple Silicon macOS release.', autoMissingDriver: 'The usbgadget driver is not loaded. Follow the mac2jb setup guide, then check again.',
+    autoCheckFailed: 'Could not verify the driver. See the details below.', autoReady: 'Driver loaded. Confirm the console editor and start typing.', autoStarting: 'Waiting for the console to recognize the USB keyboard…', autoTyping: 'Typing bootstrap into the console…',
+    autoStopping: 'Stopping and releasing keys…', autoStopped: 'Stopped. Clear any partial text in the console editor before trying again.', autoFinished: 'USB sending finished. Verify the text on the console and save it as NS2 in slot 0. RUN was not pressed.', autoFailed: 'USB sending failed. Clear partial text before trying again; check the cable, controller and driver.',
+    autoBusy: 'Stop USB typing before starting another operation or closing the application.', autoConfirmRequired: 'Confirm the empty editor and US English console keyboard layout.', autoInvalidController: 'Choose a valid USB controller.', autoInvalidDelay: 'Choose a supported typing speed.', autoNotReady: 'The USB sender and loaded driver must be available before typing.', autoInvalidAction: 'Invalid autotyper operation.',
     download: 'Download bootstrap.bas', bootstrapHint: 'Enter this file in SmileBASIC slot 0 and save it as NS2. This is a one-time setup.',
     connect: '02 / CONNECT', consoleSteps: 'Continue on your console',
     step1: 'Open SmileBASIC and choose “Make a program”.', step2: 'Enter these commands separately, confirming the load:',
@@ -187,6 +198,17 @@ const I18N = {
     titleId: 'IDs de los títulos', version: 'Versión (opcional)', titleHint: 'Pegá hasta 64 TitleIDs, separados por líneas o comas. Se eliminan duplicados. El almacenamiento y la versión decimal opcional se aplican a todos; dejá la versión vacía si son distintas.',
     start: 'Iniciar una sesión nueva', requirements: 'Antes de empezar',
     requirementsText: 'SmileBASIC 4.4.9 · Sistema 23.0.1 · Más de 20 MiB libres en el guardado de SmileBASIC. Mantené la sesión abierta mientras uses las herramientas.',
+    autoTitle: 'Escritura automática del bootstrap por USB', autoIntro: 'Emisor de teclado USB opcional de mac2jb para Mac compatibles con Apple Silicon. Escribe el bootstrap.bas de esta aplicación en SmileBASIC; no pulsa RUN.',
+    autoDriverNote: 'Requiere un driver usbgadget compatible, ya instalado, aprobado y cargado. El driver original puede requerir cambios en SIP y la seguridad de arranque que reducen la protección del Mac. NS2 Desktop no lo instala ni cambia esos ajustes.',
+    autoDriverGuide: 'Configuración del driver y requisitos de mac2jb', autoSteps: 'Conectá un cable USB de datos a la consola. Abrí SmileBASIC → Make a program con el editor vacío en el slot 0. Configurá el teclado USB de la consola en inglés de EE. UU. La escritura puede tardar varios minutos.',
+    autoController: 'Controlador USB', autoDetect: 'Automático', autoSpeed: 'Velocidad de escritura', autoNormal: 'Normal (50 ms)', autoSlow: 'Lenta (100 ms)', autoVerySlow: 'Muy lenta (200 ms)',
+    autoConfirm: 'El editor de la consola está vacío y su teclado USB está en inglés de EE. UU.', autoCheck: 'Comprobar driver', autoStart: 'Escribir bootstrap', autoStop: 'Detener escritura', autoLines: 'Líneas enviadas:', autoLineUnit: 'líneas',
+    autoUnsupported: 'La escritura automática USB está disponible solo en la versión macOS Apple Silicon. Este método no funciona en Windows, Linux ni Mac Intel.',
+    autoUnchecked: 'Comprobá el driver antes de escribir.', autoChecking: 'Comprobando el emisor incluido y el driver cargado…',
+    autoMissingHelper: 'Falta el emisor USB. Usá la versión macOS Apple Silicon.', autoMissingDriver: 'El driver usbgadget no está cargado. Seguí la guía de mac2jb y volvé a comprobar.',
+    autoCheckFailed: 'No se pudo verificar el driver. Revisá los detalles debajo.', autoReady: 'Driver cargado. Confirmá el editor de la consola para comenzar.', autoStarting: 'Esperando que la consola reconozca el teclado USB…', autoTyping: 'Escribiendo el bootstrap en la consola…',
+    autoStopping: 'Deteniendo y liberando las teclas…', autoStopped: 'Detenido. Borrá el texto parcial del editor de la consola antes de reintentar.', autoFinished: 'Envío USB terminado. Verificá el texto en la consola y guardalo como NS2 en el slot 0. No se pulsó RUN.', autoFailed: 'Falló el envío USB. Borrá el texto parcial antes de reintentar; revisá el cable, el controlador y el driver.',
+    autoBusy: 'Detené la escritura USB antes de iniciar otra operación o cerrar la aplicación.', autoConfirmRequired: 'Confirmá el editor vacío y el teclado USB de la consola en inglés de EE. UU.', autoInvalidController: 'Elegí un controlador USB válido.', autoInvalidDelay: 'Elegí una velocidad de escritura válida.', autoNotReady: 'El emisor USB y el driver cargado deben estar disponibles antes de escribir.', autoInvalidAction: 'Operación de escritura automática inválida.',
     download: 'Descargar bootstrap.bas', bootstrapHint: 'Introducí este archivo en el slot 0 de SmileBASIC y guardalo como NS2. Solo se hace una vez.',
     connect: '02 / CONEXIÓN', consoleSteps: 'Continuá en la consola',
     step1: 'Abrí SmileBASIC y elegí «Make a program».', step2: 'Introducí estos comandos por separado y confirmá la carga:',
@@ -224,6 +246,7 @@ if (typeof document !== 'undefined') {
   let token = location.hash.slice(1) || sessionStorage.getItem('ns2-token') || '';
   if (token) sessionStorage.setItem('ns2-token', token);
   history.replaceState(null, '', location.pathname + location.search);
+  let autoRequest = false, lastAutoStatus = '';
   let current = {status: 'idle', stage: '', command: '', active: false}, after = 0, started = null, stopped = false;
   let uiError = '', connectionError = false, takeoverBusy = false, polling = false;
   let catalog = {}, historyRuns = [], historyLoading = false, sdResult = null;
@@ -235,6 +258,7 @@ if (typeof document !== 'undefined') {
     renderState(); renderTitles(); renderHistory(); renderSdSupport();
   }
   function renderState() {
+    renderAutotyper();
     $('status').textContent = t(current.standby ? 'otherInstanceStatus' : current.progress?.stalled ? 'possibleStall' : current.status);
     $('status').dataset.state = current.progress?.stalled ? 'stalled' : current.status;
     const stage = current.stage.match(/^([1-4])\/4/);
@@ -568,6 +592,38 @@ if (typeof document !== 'undefined') {
     catch {const range = document.createRange(); range.selectNodeContents($('command')); getSelection().removeAllRanges(); getSelection().addRange(range);}
   });
   $('output').addEventListener('click', () => api('output', {}).catch(error => showError(error.message)));
+  function renderAutotyper() {
+    const value = current.autotyper || {supported: false, status: 'unsupported', logs: []};
+    const keys = {unsupported: 'autoUnsupported', unchecked: 'autoUnchecked', checking: 'autoChecking',
+      'missing-helper': 'autoMissingHelper', 'missing-driver': 'autoMissingDriver', 'check-failed': 'autoCheckFailed',
+      ready: 'autoReady', starting: 'autoStarting', typing: 'autoTyping', stopping: 'autoStopping', stopped: 'autoStopped', finished: 'autoFinished', failed: 'autoFailed'};
+    if (value.status !== lastAutoStatus && ['stopped', 'finished', 'failed'].includes(value.status)) $('autotyper-confirm').checked = false;
+    lastAutoStatus = value.status;
+    $('autotyper-controls').hidden = !value.supported;
+    $('autotyper-status').textContent = t(keys[value.status] || 'autoUnchecked') + (value.error ? ' ' + value.error : '');
+    const locked = autoRequest || connectionError || current.standby || current.consoleActive;
+    for (const id of ['autotyper-controller', 'autotyper-delay', 'autotyper-confirm', 'autotyper-check']) $(id).disabled = locked || value.busy;
+    $('autotyper-start').disabled = locked || value.busy || !value.helperPresent || !value.driverLoaded || !$('autotyper-confirm').checked;
+    $('autotyper-stop').disabled = autoRequest || current.standby || !['starting', 'typing'].includes(value.status);
+    $('autotyper-progress').textContent = value.total ? t('autoLines') + ' ' + value.completed + '/' + value.total : '';
+    $('autotyper-preview').textContent = value.preview ? 'bootstrap.bas · ' + value.preview.lines + ' ' + t('autoLineUnit') + ' · ' + value.preview.bytes + ' bytes' : '';
+    $('autotyper-log').hidden = !value.logs?.length;
+    $('autotyper-log').textContent = (value.logs || []).join('\n');
+  }
+  async function autotyperAction(action) {
+    if (autoRequest) return;
+    autoRequest = true; renderAutotyper();
+    try {
+      const value = await api('autotyper', {action, confirmed: $('autotyper-confirm').checked,
+        controller: $('autotyper-controller').value, delayMs: Number($('autotyper-delay').value)});
+      current.autotyper = value; current.active = !!current.consoleActive || value.busy;
+      if (action === 'start') $('autotyper-confirm').checked = false;
+    } catch (error) {showError(error.message);}
+    finally {autoRequest = false; renderState();}
+  }
+  for (let i = 0; i < 16; i++) $('autotyper-controller').add(new Option('usb-drd' + i, 'usb-drd' + i));
+  $('autotyper-confirm').addEventListener('change', renderAutotyper);
+  for (const action of ['check', 'start', 'stop']) $('autotyper-' + action).addEventListener('click', () => autotyperAction(action));
   $('bootstrap').addEventListener('click', async () => {
     try {
       const response = await fetch('/api/bootstrap', {headers: {authorization: 'Bearer ' + token}});

@@ -1,0 +1,21 @@
+{
+  "project": "cpypwn/mac2jb",
+  "url": "https://github.com/cpypwn/mac2jb",
+  "commit": "703f1eed33b5b82245b5058cca40c61465312eb4",
+  "files": {
+    "sender.c": "dd448fb282adaaa22e697786463fc36eef460dc677f4fdcdf184e7b6720926c7",
+    "LICENSE": "057d1afd413066797f260cf11a1110f49a2958b3a270e417789f6602b7af4d4c",
+    "vendor/libusbd/LICENSE": "697858b885498b7c29b116c6d675e248c51542396c2e35538063fff83437c650",
+    "vendor/libusbd/LICENSE-APSL-2.0.txt": "2d0c12edaaf8d31fec6796fef99291b12e833b6bef28100975120a53d209e06d",
+    "vendor/libusbd/Makefile": "85617ffd8c2cc6b4f8c6497aa28e4c149443a8fbb699befbc652178045842cd0",
+    "vendor/libusbd/include/libusbd.h": "6fdb5391f50bd44df86161db9e10ba7f0d0905aecaa897c6a4ed66d01250f3f3",
+    "vendor/libusbd/src/libusbd.c": "758ad4d8062c957e7b3ed6298c7cc16bfb4632daa23c7acda756c3322c6fd058",
+    "vendor/libusbd/src/libusbd_priv.h": "ac8708a2973e6b48e5673f1fb0ebe8d5ba1bdebff0f74f01a34e5058b7c5949a",
+    "vendor/libusbd/src/plat/macos/IOUSBDeviceControllerLib.h": "53075f26819ae801eb0061f92f2db7e3fc2b3aa6e3ce34d387c7dd3ecd5f6f50",
+    "vendor/libusbd/src/plat/macos/alt_IOUSBDeviceControllerLib.c": "a4c911f3b74158dc191063fff274111d1689402cb956c8a1f74f7b1c1c1142ac",
+    "vendor/libusbd/src/plat/macos/alt_IOUSBDeviceControllerLib.h": "a15efacb4060b30edc1276b0d7776ebcfb50d7df37dbe0f55a1f82ebf18482db",
+    "vendor/libusbd/src/plat/macos/impl.c": "93105f877fd6770c8edfa3a7583f0fd0cdd258f687889a3224118f8870650613",
+    "vendor/libusbd/src/plat/macos/impl.h": "78c323df9362eb72f1a5c4dba60ba47c4f0a1aab0245471503ff31ddb752abfb",
+    "vendor/libusbd/src/plat/macos/impl_priv.h": "f99c52b0b91692d51119da681956ff668b73f3420099367a6c5c8434ed866158"
+  }
+}
