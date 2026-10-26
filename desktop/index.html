@@ -19,14 +19,14 @@
         <p id="autotyper-status" role="status"></p>
         <div id="autotyper-controls" hidden>
           <p class="hint" data-i18n="autoDriverNote"></p>
-          <a href="https://github.com/cpypwn/mac2jb#readme" target="_blank" rel="noopener noreferrer" data-i18n="autoDriverGuide"></a>
+          <a href="/usb-help" target="_blank" rel="noopener noreferrer" data-i18n="autoDriverGuide"></a>
           <p class="hint" data-i18n="autoSteps"></p>
           <label for="autotyper-controller" data-i18n="autoController"></label><select id="autotyper-controller"><option value="auto" data-i18n="autoDetect"></option></select>
           <label for="autotyper-delay" data-i18n="autoSpeed"></label><select id="autotyper-delay"><option value="50" data-i18n="autoNormal"></option><option value="100" data-i18n="autoSlow"></option><option value="200" data-i18n="autoVerySlow"></option></select>
           <label><input id="autotyper-confirm" type="checkbox"><span data-i18n="autoConfirm"></span></label>
           <button id="autotyper-check" data-i18n="autoCheck"></button><button id="autotyper-start" data-i18n="autoStart"></button><button id="autotyper-stop" data-i18n="autoStop" disabled></button>
           <p id="autotyper-progress" role="status"></p><p id="autotyper-preview" class="hint"></p>
-          <pre id="autotyper-log" hidden></pre>
+          <p id="autotyper-diagnostics" class="hint"></p><button id="autotyper-logs" data-i18n="autoOpenLogs"></button><p id="autotyper-log-path" class="hint"></p><pre id="autotyper-log" hidden></pre>
         </div>
       </details>
     </section>
@@ -35,7 +35,13 @@
         <ol class="steps"><li data-i18n="step1">Open SmileBASIC and choose “Make a program”.</li><li><span data-i18n="step2">Enter these commands separately, confirming the load:</span><pre>LOAD "TXT:NS2"
 RUN
 REMOVE NSR,&amp;H60000000,&amp;H3FFFFFFF</pre><p class="hint" data-i18n="memory">“Out of memory” is expected. Enter REMOVE only once per application process.</p></li><li><span data-i18n="step3">Start a PC session, then enter the connection command shown below:</span><div class="command"><code id="command" data-i18n="commandPlaceholder">Your START command will appear here.</code><button id="copy" disabled data-i18n="copy">Copy</button></div></li></ol>
-        <p class="keep-open" data-i18n="keepOpen">Keep SmileBASIC and this application open until the session finishes. Restart the console when you are done.</p>
+        <div id="command-typing" hidden>
+          <h3 data-i18n="autoCommandsTitle"></h3><p class="hint" data-i18n="autoCommandsHelp"></p>
+          <label for="autotyper-wait" data-i18n="autoWait"></label><select id="autotyper-wait"><option value="3000">3 s</option><option value="5000">5 s</option><option value="10000">10 s</option></select>
+          <label><input id="commands-confirm" type="checkbox"><span data-i18n="autoCommandsConfirm"></span></label>
+          <button id="autotyper-commands" data-i18n="autoCommandsStart"></button><button id="commands-stop" data-i18n="autoStop" disabled></button><p id="commands-status" role="status"></p>
+        </div>
+        <button id="cancel-waiting" data-i18n="cancelWaiting" hidden></button><p class="keep-open" data-i18n="keepOpen">Keep SmileBASIC and this application open until the session finishes. Restart the console when you are done.</p>
       </section>
       <section class="card progress"><div class="heading"><div><div class="section-label" data-i18n="progress">03 / PROGRESS</div><h2 id="stage" data-i18n="ready">Ready when you are</h2></div><button id="output" data-i18n="openResults">Open results</button></div><div class="error" id="error" role="alert" hidden></div><button id="session-retry" hidden data-i18n="retry">Retry</button><p id="session-retry-hint" class="hint"></p><div id="live-progress" hidden><strong data-i18n="liveActivity">Live activity</strong><p class="hint" id="progress-count"></p><ol id="activity-feed"></ol><p class="hint" id="progress-age"></p><p id="stall-warning" class="stall-warning" role="status" hidden></p></div><p id="completion-notice" role="status" hidden></p><button id="enable-notifications" data-i18n="enableNotifications">Enable desktop notifications</button><p id="notification-status" class="hint" role="status"></p><pre id="log" aria-live="polite"></pre><p class="hint" id="result-path"></p><p class="hint" data-i18n="readonlyLog">Session logs are shown in their original language.</p></section>
       <section class="card" id="file-browser" hidden><h2 data-i18n="sessionTools">Session tools</h2>
@@ -55,6 +61,7 @@ REMOVE NSR,&amp;H60000000,&amp;H3FFFFFFF</pre><p class="hint" data-i18n="memory"
         <button id="file-go" data-i18n="fileGo"></button><button id="file-up" data-i18n="fileUp"></button><button id="file-structure" data-i18n="fileStructure"></button><button id="file-finish" data-i18n="fileFinish"></button>
         <p id="file-status" role="status"></p><button id="file-retry" hidden data-i18n="retry">Retry</button><p id="file-retry-hint" class="hint" role="status"></p><div id="file-entries"></div><button id="file-more" hidden data-i18n="fileMore"></button>
       </section>
+      <section class="card"><details><summary data-i18n="updateTitle"></summary><p class="hint" data-i18n="updateHelp"></p><button id="update-check" data-i18n="updateCheck"></button><p id="update-status" role="status"></p><label for="update-package" data-i18n="updateFormat"></label><select id="update-package" disabled></select><button id="update-download" data-i18n="updateDownload" disabled></button><button id="update-open" data-i18n="updateOpen" disabled></button><p id="update-path" class="hint"></p></details></section>
       <section class="card"><div class="heading"><h2 data-i18n="historyTitle">Session history</h2><button id="refresh-history" data-i18n="refreshHistory">Refresh</button></div><p id="history-status" class="hint" role="status"></p><div id="history-runs"></div></section>
     </div>
   </div>

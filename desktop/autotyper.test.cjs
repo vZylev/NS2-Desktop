@@ -16,7 +16,7 @@ function fixture(t, overrides = {}) {
   const calls = [], signals = [], confirmations = [];
   child.stdin.on('data', bytes => confirmations.push(bytes.toString()));
   const typer = createAutotyper({root, platform: 'darwin', arch: 'arm64',
-    helperAvailable: async () => true, probeDriver: async () => true,
+    helperAvailable: async () => true, probeDriver: async () => true, diagnose: async () => ({os: 'fixture', sip: 'unknown', controllers: []}),
     runner: (...args) => {calls.push(args); return child;}, signal: (...args) => signals.push(args), ...overrides});
   t.after(() => {child.stdout.end(); child.stderr.end(); child.stdin.end(); child.emit('close', 1);});
   return {typer, child, calls, signals, confirmations};
@@ -126,4 +126,63 @@ test('vendored mac2jb sender and libusbd sources match the pinned upstream check
   for (const [file, sha256] of Object.entries(upstream.files))
     assert.equal(crypto.createHash('sha256').update(await fs.readFile(path.join(directory, file))).digest('hex'), sha256, file);
   assert.ok(upstream.files['vendor/libusbd/LICENSE-APSL-2.0.txt']);
+});
+
+test('connection command validation preserves all pairing arguments and rejects injected or malformed text', () => {
+  const {validateCommand} = require('./autotyper.cjs');
+  const valid = 'V=START(39380,192,168,1,10,281474976710655,2,3,4)';
+  assert.equal(validateCommand(valid), valid);
+  for (const command of ['V=START(39380,192,168,1,10)', valid + '\nRUN', valid.replace(',192,', ',256,'),
+    valid.replace('281474976710655', '281474976710656'), valid.replace(',2,', ',,'), valid.replace('39380', '1234')])
+    assert.throws(() => validateCommand(command), /autoInvalidSession/);
+});
+
+test('command typing binds to a fresh live host, reports waits and saves a durable USB log', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ns2-command-test-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  const {typer, child, calls} = fixture(t, {dataRoot: directory, diagnose: async () => ({os: 'fixture', sip: 'unknown', controllers: []})});
+  let live = true, started = 0;
+  const command = 'V=START(39380,192,168,1,10,1,2,3,4)';
+  const session = {pid: process.pid, command, isCurrent: () => live, onStarted: () => {started++;}};
+  await typer.start({...input, waitMs: 5000}, session);
+  assert.equal(started, 1); assert.match(calls[0][0], /ns2-commands$/);
+  assert.ok(calls[0][1].includes('--auto')); assert.ok(calls[0][1].includes('5000'));
+  const record = calls[0][2].env.NS2_ACTIVE_COMMAND_FILE;
+  assert.equal(await fs.readFile(record, 'utf8'), process.pid + '\n' + command + '\n');
+  child.stdout.write('Sending: ' + command + '\nMAC2JB_GUI {"type":"command-complete","completed":2,"total":4}\nMAC2JB_GUI {"type":"wait","remainingMs":1000,"label":"RUN"}\n');
+  await tick(); assert.equal(typer.snapshot().completed, 2); assert.equal(typer.snapshot().wait.remainingMs, 1000);
+  typer.stop(); child.emit('close', 0); await typer.flushLogs();
+  assert.equal(typer.snapshot().status, 'stopped'); assert.equal(typer.snapshot().wait, null);
+  assert.match(await fs.readFile(typer.snapshot().logFile, 'utf8'), /Sending: V=START/);
+  live = false; await assert.rejects(typer.start(input, session), /autoInvalidSession/);
+  assert.equal(calls.length, 1);
+});
+
+test('a host that expires during USB preflight never receives command input', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ns2-stale-host-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  let live = true;
+  const {typer, calls} = fixture(t, {dataRoot: directory, probeDriver: async () => {live = false; return true;}, diagnose: async () => ({})});
+  await assert.rejects(typer.start(input, {pid: process.pid, command: 'V=START(39380,127,0,0,1,0,0,0,0)', isCurrent: () => live, onStarted: () => assert.fail()}), /autoInvalidSession/);
+  assert.equal(calls.length, 0); assert.equal(typer.busy, false);
+});
+
+test('the HTTP command action uses only the current host and permits at most one attempt', async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ns2-command-api-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  const {typer, child, calls} = fixture(t, {dataRoot: directory, diagnose: async () => ({})});
+  const engine = new EventEmitter(); engine.pid = process.pid; engine.stdout = new PassThrough(); engine.stderr = new PassThrough();
+  const app = await createApp({dataRoot: directory, port: 0, autotyper: typer, runner: () => engine});
+  t.after(() => {engine.stdout.end(); engine.stderr.end(); app.server.closeAllConnections(); app.server.close();});
+  const headers = {authorization: 'Bearer ' + app.token, 'Content-Type': 'application/json'};
+  const call = (route, body) => fetch(new URL('/api/' + route, app.url), {method: 'POST', headers, body: JSON.stringify(body)});
+  assert.equal((await call('autotyper', {action: 'commands', ...input})).status, 409);
+  await call('start', {mode: 'session', host: '127.0.0.1'});
+  engine.stdout.write('V=START(39380,127,0,0,1,1,2,3,4)\n'); await tick();
+  assert.equal((await call('autotyper', {action: 'commands', ...input, command: 'RUN', pid: 1})).status, 200);
+  assert.match(await fs.readFile(calls[0][2].env.NS2_ACTIVE_COMMAND_FILE, 'utf8'), /1,2,3,4/);
+  child.emit('close', 0);
+  assert.equal((await call('autotyper', {action: 'commands', ...input})).status, 409);
+  engine.emit('close', 1);
+  assert.equal((await call('retry', {})).status, 409);
 });

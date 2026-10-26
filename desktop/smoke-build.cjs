@@ -19,6 +19,22 @@ async function main() {
       const app = path.join(home, folder);
       const result = await promisify(execFile)(path.join(app, 'desktop/native/mac2jb-send'), [path.join(app, 'bootstrap.bas'), '--dry-run'], {timeout: 15000});
       assert.match(result.stdout, /no USB device created and no keys sent/);
+      const commands = path.join(app, 'desktop/native/ns2-commands');
+      const record = path.join(home, 'active-command');
+      const commandEnv = {...env, NS2_ACTIVE_COMMAND_FILE: record};
+      for (const command of ['V=START(39380,127,0,0,1,0,0,0,0)', 'V=START(39380,192,168,1,10,281474976710655,2,3,4)']) {
+        await fs.writeFile(record, process.pid + '\n' + command + '\n');
+        await promisify(execFile)(commands, ['--validate-start-only'], {env: commandEnv, timeout: 15000});
+      }
+      for (const invalid of ['V=START(39380,127,0,0,1)', 'V=START(39380,256,0,0,1,0,0,0,0)',
+        'V=START(39380,127,0,0,1,281474976710656,0,0,0)', 'V=START(39380,127,0,0,1,0,0,0,0)\nRUN']) {
+        await fs.writeFile(record, process.pid + '\n' + invalid + '\n');
+        await assert.rejects(promisify(execFile)(commands, ['--validate-start-only'], {env: commandEnv, timeout: 15000}));
+      }
+      const timing = await promisify(execFile)(commands, ['--gui-timing-test', '--gui-events',
+        '--load-wait-ms', '0', '--run-wait-ms', '0', '--remove-wait-ms', '0', '--load-confirm-wait-ms', '0'], {timeout: 15000});
+      assert.match(timing.stdout, /"completed":4,"total":4/);
+      assert.match((await promisify(execFile)(commands, ['--dry-run'], {timeout: 15000})).stdout, /submitted separately/);
     }
     child = spawn(executable, ['--no-browser'], {env, stdio: ['ignore', 'pipe', 'pipe']});
     let output = '', stderr = '', failure;

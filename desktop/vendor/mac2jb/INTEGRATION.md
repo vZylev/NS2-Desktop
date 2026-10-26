@@ -1,22 +1,25 @@
-# mac2jb USB bootstrap sender
+# USB sender integration
 
-The sender and macOS libusbd build sources are an unmodified subset of
-cpypwn/mac2jb at the revision recorded in UPSTREAM.json. SHA-256 hashes cover
-each imported file. The MIT and APSL license notices are preserved.
+The sender, command sender and macOS libusbd sources are an unmodified subset
+of cpypwn/mac2jb at the revision recorded in UPSTREAM.json. SHA-256 hashes cover
+each imported file. Original MIT and APSL notices remain in the source and packages.
 
-NS2 Desktop builds only the text sender for Apple Silicon, with MAC2JB_GUI
-progress messages and a local libusbd dylib. It sends NS2 Desktop's own
-bootstrap.bas, not mac2jb's different bootstrap or its post-bootstrap commands.
-It does not press Run, install a driver, change SIP, or change startup security.
-The user must first install and approve a compatible usbgadget driver using the
-upstream documentation: https://github.com/cpypwn/mac2jb#readme
+NS2 Desktop builds Apple Silicon helpers with MAC2JB_GUI progress events and
+a local libusbd dylib. The bootstrap operation types our bundled bootstrap.bas
+without running it. A separate, explicitly confirmed connection operation sends
+LOAD, its confirmation, RUN, REMOVE and the current host's START command.
 
-Typing is an explicit operation before starting a console session. The user
-confirms an empty SmileBASIC editor and US English USB keyboard layout on the
-console. Stop signals the entire sender process group, including the worker
-used for controller discovery. A stopped or failed transfer is never resumed
-automatically; the user must clear partial text before starting again.
+During the build, desktop/build-autotyper.cjs replaces the command sender's
+five-argument record loader with desktop/native-src/active-command.h. This
+adapter validates our nine-argument authenticated pairing command and live host
+PID from a private record. No arbitrary command or path is accepted from the UI.
+The record is removed after use. A host session can attempt command typing once.
+Stopping signals the entire helper process group, including discovery workers.
+Interrupted command typing requires restarting the console before another attempt.
 
-Credits: cpypwn (mac2jb), shinyquagsire23 (libusbd and USB gadget work), and the
-original authors credited in the vendored source. Native build and dry-run
-checks do not establish successful typing on physical console hardware.
+The application does not install drivers or alter SIP/startup security. USB
+checks report driver loading, available controller names and SIP status.
+
+Credits: cpypwn, shinyquagsire23 and the authors credited in the imported source.
+Native compilation, dry runs, command parsing and timing protocol tests do not
+establish successful USB typing or console execution on physical hardware.

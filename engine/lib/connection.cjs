@@ -100,14 +100,16 @@ function parseHello(bytes, token) {
   return {...addresses, platform: 2, sdkCrc32: values[15]};
 }
 
-async function listen({host, port, token, onWaiting, timeout = 10 * 60 * 1000}) {
+async function listen({host, port, token, onWaiting, signal, timeout = 10 * 60 * 1000}) {
+  if (signal?.aborted) throw Error('Connection wait cancelled');
   if (!net.isIPv4(host)) throw Error('Use the computer\'s LAN IPv4 address');
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw Error('Port must be 1024..65535');
   const pending = new Set();
   const server = net.createServer();
   let timer, finished = false;
   return new Promise((resolve, reject) => {
-    const stop = () => {finished = true; clearTimeout(timer); server.close();};
+    const cancelled = () => fail(Error('Connection wait cancelled'));
+    const stop = () => {finished = true; clearTimeout(timer); signal?.removeEventListener('abort', cancelled); server.close();};
     const fail = error => {
       if (finished) return;
       stop();
@@ -130,7 +132,9 @@ async function listen({host, port, token, onWaiting, timeout = 10 * 60 * 1000}) 
       }).catch(() => {pending.delete(connection); connection.close();});
     });
     timer = setTimeout(() => fail(Error('No console connected before the pairing deadline')), timeout);
+    signal?.addEventListener('abort', cancelled, {once: true});
     server.listen(port, host, () => {
+      if (finished) {server.close(); return;}
       try {onWaiting?.();}
       catch (error) {fail(error);}
     });

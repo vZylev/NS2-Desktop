@@ -1,6 +1,6 @@
 {
   "name": "ns2-desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Desktop interface for console file browsing and extraction on Windows, Linux and macOS",
   "scripts": {

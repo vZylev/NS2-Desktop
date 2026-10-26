@@ -165,8 +165,11 @@ async function main(args = process.argv.slice(2)) {
     toolVersion: TOOL_VERSION, buildId: process.env.NS2_BUILD_ID || 'source',
     sourceSha256: await sourceDigest(), started: new Date().toISOString(), verified: false};
   let native, bridge, failure;
+  const waiting = new AbortController();
+  const cancelWaiting = message => {if (message?.action === 'cancel-waiting') waiting.abort();};
+  process.on('message', cancelWaiting); process.channel?.unref();
   try {
-    const connected = await listen({host, port, token, onWaiting() {
+    const connected = await listen({host, port, token, signal: waiting.signal, onWaiting() {
       console.log(`Waiting for Switch 2 at ${host}:${port}.`);
       console.log('In a freshly opened SmileBASIC, load the saved bootstrap and enter:');
       console.log('  RUN\n  REMOVE NSR,&H60000000,&H3FFFFFFF');
@@ -174,6 +177,7 @@ async function main(args = process.argv.slice(2)) {
       console.log('  ' + command);
       console.log('Run folder: ' + directory);
     }});
+    process.removeListener('message', cancelWaiting);
     native = new NativeClient(connected.connection, connected.addresses);
     console.log('Connected. Checking the application...');
     result.bootstrap = await qualify(native);
@@ -199,6 +203,7 @@ async function main(args = process.argv.slice(2)) {
     result.verified = true;
   } catch (error) {result.error = error.message; failure = error;}
   finally {
+    process.removeListener('message', cancelWaiting);
     for (const [name, close] of [['bridge', () => bridge?.close()], ['connection', () => native?.stop()]]) {
       try {await close();}
       catch (error) {(result.cleanupErrors ||= []).push({name, error: error.message}); failure ||= error;}

@@ -16,6 +16,7 @@
     "vendor/libusbd/src/plat/macos/alt_IOUSBDeviceControllerLib.h": "a15efacb4060b30edc1276b0d7776ebcfb50d7df37dbe0f55a1f82ebf18482db",
     "vendor/libusbd/src/plat/macos/impl.c": "93105f877fd6770c8edfa3a7583f0fd0cdd258f687889a3224118f8870650613",
     "vendor/libusbd/src/plat/macos/impl.h": "78c323df9362eb72f1a5c4dba60ba47c4f0a1aab0245471503ff31ddb752abfb",
-    "vendor/libusbd/src/plat/macos/impl_priv.h": "f99c52b0b91692d51119da681956ff668b73f3420099367a6c5c8434ed866158"
+    "vendor/libusbd/src/plat/macos/impl_priv.h": "f99c52b0b91692d51119da681956ff668b73f3420099367a6c5c8434ed866158",
+    "commands.c": "de18a1d9b113183246d86b66debd655e274b80e2b531440a1f2fb06a96bbc576"
   }
 }

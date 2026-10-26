@@ -21,7 +21,10 @@ cover startup on each platform; console compatibility depends on the setup below
 
 ## Features
 
-- Optional USB bootstrap autotyping on Apple Silicon Macs using [mac2jb](https://github.com/cpypwn/mac2jb), with a separately installed and approved USB gadget driver.
+- Optional USB bootstrap and connection-command typing on compatible Apple Silicon Macs, with a separately installed and approved USB gadget driver.
+- Adjustable typing speed and command pauses, per-command progress, USB diagnostics and persistent logs.
+- Checks for stable updates and downloads the appropriate platform package with SHA-256 verification.
+- Cancel connection waits and follow recovery guidance for the stage that failed.
 - Multiple tools in one session, without repeating the connection process for each operation.
 - File browsing across accessible SD, USER and SYSTEM storage, with filenames, folders and sizes.
 - Individual file downloads and OunceCake-based RomFS / ExeFS extraction to the PC.
@@ -44,7 +47,7 @@ Credit for the development of the underlying tools goes to **vZyle**, **Hexa**,
 **OunceCake** and the other integrated tools. This project builds on their work
 and focuses on making those tools easier to use together.
 
-USB typing builds on **cpypwn**’s mac2jb and **shinyquagsire23**’s libusbd / USB gadget work.
+USB tooling credits: **cpypwn** and **shinyquagsire23**, along with the original contributors.
 Their original MIT and APSL notices are included with the source and packages.
 
 Special thanks to **Aster** for **testing, suggestions and feedback**.

@@ -87,11 +87,12 @@ async function jsonBody(req, limit = 8192) {
 
 async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 39381,
   runner = spawn, launchBrowser = false, opener = openExternal,
-  standby = false, primaryPort = 39381, now = Date.now, autotyper = null} = {}) {
+  standby = false, primaryPort = 39381, now = Date.now, autotyper = null, updates = null} = {}) {
   dataRoot = path.resolve(dataRoot);
   await fs.mkdir(dataRoot, {recursive: true, mode: 0o700});
   const token = crypto.randomBytes(32).toString('hex');
-  const typer = autotyper || require('./autotyper.cjs').createAutotyper();
+  const updater = updates || require('./updates.cjs').createUpdates({dataRoot});
+  const typer = autotyper || require('./autotyper.cjs').createAutotyper({dataRoot});
   let child = null, lastSuccessfulHost = '', nextId = 0, closing = false, takingOver = false, boundPort = port;
   let historyWrite = Promise.resolve(), zipBusy = false, lastInput = null;
   const state = {titles: [], historyError: '', status: 'idle', stage: '', command: '', runFolder: '', lines: [],
@@ -138,11 +139,11 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
     const args = buildArgs(input);
     lastInput = {...input};
     Object.assign(state, {status: 'starting', stage: '', command: '', runFolder: '', lines: [],
-      started: new Date().toISOString(), finished: null, error: '', consoleConnected: false, toolsReady: false, toolsBusy: false, mode: input.mode, progress: createProgress(),
+      started: new Date().toISOString(), finished: null, error: '', consoleConnected: false, commandsAttempted: false, toolsReady: false, toolsBusy: false, mode: input.mode, progress: createProgress(),
       titles: ['probe', 'dump'].includes(input.mode) ? parseTitles(input.title) : [], historyError: ''});
     lastSuccessfulHost = input.host;
     child = runner(process.execPath, [path.join(ROOT, 'run.cjs'), ...args],
-      {cwd: ROOT, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+      {cwd: ROOT, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
         env: {...process.env, NS2_DATA_ROOT: dataRoot}});
     const current = child;
     for (const stream of [child.stdout, child.stderr])
@@ -152,6 +153,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
     });
     child.once('close', code => {
       if (child !== current) return;
+      if (typer.snapshot().kind === 'commands') typer.stop();
       child = null; state.finished = new Date().toISOString();
       state.status = code === 0 && !state.error ? 'complete' : 'failed';
       if (state.status === 'failed' && !state.error)
@@ -173,7 +175,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
         req.headers.origin && req.headers.origin !== origin) return send(403, {error: 'invalidOrigin'});
       if (closing) return send(410, {error: 'applicationClosing'});
       const url = new URL(req.url, origin);
-      const assets = {'/': ['index.html', 'text/html; charset=utf-8'],
+      const assets = {'/': ['index.html', 'text/html; charset=utf-8'], '/usb-help': ['usb-help.html', 'text/html; charset=utf-8'],
         '/app.js': ['app.js', 'text/javascript; charset=utf-8'], '/style.css': ['style.css', 'text/css; charset=utf-8']};
       if (req.method === 'GET' && assets[url.pathname]) {
         const [name, type] = assets[url.pathname];
@@ -191,8 +193,22 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
           appVersion: APP_VERSION, buildId: BUILD_ID.slice(0, 12), standby, takingOver,
           previousInstance: previous ? {active: previous.state.active,
             appVersion: previous.state.appVersion || '', buildId: previous.state.buildId || ''} : null,
-          canRetrySession: !!lastInput && !child && !typer.busy && state.status === 'failed' && !state.consoleConnected,
-          active: !!child || typer.busy, consoleActive: !!child, autotyper: typer.snapshot(), lines: state.lines.filter(line => line.id > Number(url.searchParams.get('after') || 0))});
+          canRetrySession: !!lastInput && !child && !typer.busy && state.status === 'failed' && !state.consoleConnected && !state.commandsAttempted,
+          canTypeCommands: !!child && state.status === 'waiting' && !state.consoleConnected && !state.commandsAttempted,
+          updates: updater.snapshot(), recovery: state.status === 'failed' ? (state.consoleConnected || state.commandsAttempted ? 'recoveryConsole' : 'recoveryConnection') : '',
+          active: !!child || typer.busy || updater.busy, consoleActive: !!child, autotyper: typer.snapshot(), lines: state.lines.filter(line => line.id > Number(url.searchParams.get('after') || 0))});
+      }
+      if (url.pathname === '/api/updates' && req.method === 'POST') {
+        if (standby || closing || takingOver) return send(409, {error: 'otherInstanceOpen'});
+        const input = await jsonBody(req);
+        if (input.action === 'check') return send(200, await updater.check());
+        if (input.action === 'download') return send(200, await updater.download(input.name));
+        if (input.action === 'open') {
+          const file = updater.snapshot().file;
+          if (!file) return send(409, {error: 'updateMissingPackage'});
+          opener(path.dirname(file), true); return send(200, {opened: true});
+        }
+        return send(400, {error: 'updateInvalidAction'});
       }
       if (url.pathname === '/api/autotyper') {
         if (req.method === 'GET') return send(200, typer.snapshot());
@@ -200,8 +216,15 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
           if (standby || closing || takingOver) return send(409, {error: 'otherInstanceOpen'});
           const input = await jsonBody(req);
           if (input.action === 'stop') return send(200, typer.stop());
+          if (input.action === 'commands') {
+            if (!child || state.status !== 'waiting' || state.consoleConnected || state.commandsAttempted) return send(409, {error: 'autoInvalidSession'});
+            const current = child, command = state.command;
+            return send(200, await typer.start(input, {pid: current.pid, command,
+              isCurrent: () => child === current && state.command === command && state.status === 'waiting' && !state.commandsAttempted,
+              onStarted: () => {state.commandsAttempted = true;}}));
+          }
+          if (input.action === 'check' && (!child || state.status === 'waiting')) return send(200, await typer.check());
           if (child) return send(409, {error: 'alreadyActive'});
-          if (input.action === 'check') return send(200, await typer.check());
           if (input.action === 'start') return send(200, await typer.start(input));
           return send(400, {error: 'autoInvalidAction'});
         }
@@ -276,13 +299,23 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
       }
       if (req.method === 'POST' && url.pathname === '/api/retry') {
         if (child) return send(409, {error: 'alreadyActive'});
-        if (!lastInput || state.consoleConnected || state.status !== 'failed') return send(409, {error: 'sessionReconnectNeeded'});
+        if (!lastInput || state.consoleConnected || state.commandsAttempted || state.status !== 'failed') return send(409, {error: 'sessionReconnectNeeded'});
         start(lastInput); return send(200, {started: true});
       }
       if (req.method === 'POST' && url.pathname === '/api/start') {start(await jsonBody(req)); return send(200, {started: true});}
+      if (req.method === 'POST' && url.pathname === '/api/cancel-waiting') {
+        if (!child || state.status !== 'waiting' || state.consoleConnected || typer.busy || !child.connected) return send(409, {error: 'alreadyActive'});
+        await new Promise((resolve, reject) => child.send({action: 'cancel-waiting'}, error => error ? reject(error) : resolve()));
+        return send(200, {requested: true});
+      }
       if (req.method === 'POST' && url.pathname === '/api/output') {openExternal(dataRoot, true); return send(200, {opened: true});}
+      if (req.method === 'POST' && url.pathname === '/api/usb-logs') {
+        const directory = path.join(dataRoot, 'usb-logs'); await fs.mkdir(directory, {recursive: true, mode: 0o700});
+        opener(directory, true); return send(200, {opened: true});
+      }
       if (req.method === 'POST' && url.pathname === '/api/quit') {
         if (typer.busy) return send(409, {error: 'autoBusy'});
+        if (updater.busy) return send(409, {error: 'updateBusy'});
         if (child) return send(409, {error: 'alreadyActive'});
         closing = true;
         send(200, {closed: true}); server.close(); return;
@@ -333,7 +366,7 @@ async function createApp({dataRoot = process.env.NS2_DATA_ROOT || ROOT, port = 3
   console.log('NS2 Desktop: ' + url);
   console.log('Resultados: ' + dataRoot);
   if (launchBrowser) opener(url);
-  return {server, url, token, state, get active() {return !!child || typer.busy;}};
+  return {server, url, token, state, get active() {return !!child || typer.busy || updater.busy;}};
 }
 
 async function launchDesktop({dataRoot, port = 39381, launchBrowser = true, opener = openExternal, runner = spawn}) {

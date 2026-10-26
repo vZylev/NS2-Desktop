@@ -17,12 +17,30 @@ async function buildAutotyper(root, output) {
   await execute('clang', [...common, '-std=c11', '-D_POSIX_C_SOURCE=200809L', '-DMAC2JB_GUI',
     path.join(source, 'sender.c'), '-L', output, '-lusbd', '-Wl,-rpath,@executable_path',
     '-framework', 'CoreFoundation', '-framework', 'IOKit', '-o', helper], {maxBuffer: 8 * 1024 * 1024});
-  for (const file of [dylib, helper]) {
+  // Keep the imported sender unchanged. Replace only the session-record reader
+  // in the generated build copy so it accepts this application's pairing token.
+  const commands = path.join(output, 'ns2-commands.c');
+  let commandSource = await fs.readFile(path.join(source, 'commands.c'), 'utf8');
+  const begin = commandSource.indexOf('static int load_active_start(');
+  const end = commandSource.indexOf('static bool approve(', begin);
+  if (begin < 0 || end < begin) throw Error('Command sender adapter no longer matches');
+  commandSource = commandSource.slice(0, begin) + await fs.readFile(path.join(root, 'desktop/native-src/active-command.h'), 'utf8') + '\n' + commandSource.slice(end);
+  commandSource = commandSource.replace('int main(int argc, char **argv) {', `int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "--validate-start-only")) {
+        char command[512]; return load_active_start(command, sizeof(command)) == 0 ? 0 : 1;
+    }`);
+  await fs.writeFile(commands, commandSource);
+  const commandHelper = path.join(output, 'ns2-commands');
+  await execute('clang', [...common, '-std=c11', '-D_POSIX_C_SOURCE=200809L', '-DMAC2JB_GUI', '-I', source,
+    commands, '-L', output, '-lusbd', '-Wl,-rpath,@executable_path',
+    '-framework', 'CoreFoundation', '-framework', 'IOKit', '-o', commandHelper], {maxBuffer: 8 * 1024 * 1024});
+  for (const file of [dylib, helper, commandHelper]) {
     await execute('codesign', ['--force', '--sign', '-', file]);
     await execute('codesign', ['--verify', '--strict', file]);
   }
   // This validates our exact bootstrap and dynamic-library loading without USB IO.
   await execute(helper, [path.join(root, 'bootstrap.bas'), '--dry-run'], {timeout: 15000});
-  return [['desktop/native/mac2jb-send', helper], ['desktop/native/libusbd.dylib', dylib]];
+  await execute(commandHelper, ['--dry-run'], {timeout: 15000});
+  return [['desktop/native/mac2jb-send', helper], ['desktop/native/ns2-commands', commandHelper], ['desktop/native/libusbd.dylib', dylib]];
 }
 module.exports = {buildAutotyper};

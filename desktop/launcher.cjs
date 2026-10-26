@@ -32,7 +32,7 @@ async function main() {
           throw Error('Invalid embedded path');
         const file = path.join(temporary, ...name.split('/'));
         await fs.mkdir(path.dirname(file), {recursive: true, mode: 0o700});
-        await fs.writeFile(file, Buffer.from(base64, 'base64'), {mode: name === 'desktop/native/mac2jb-send' ? 0o700 : 0o600});
+        await fs.writeFile(file, Buffer.from(base64, 'base64'), {mode: ['desktop/native/mac2jb-send', 'desktop/native/ns2-commands'].includes(name) ? 0o700 : 0o600});
       }
       const runtimeBytes = zlib.brotliDecompressSync(Buffer.from(sea.getAsset('runtime')));
       if (crypto.createHash('sha256').update(runtimeBytes).digest('hex') !== manifest.runtimeSha256)

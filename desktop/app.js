@@ -1,6 +1,46 @@
 'use strict';
 const I18N = {
   en: {
+    cancelWaiting: 'Cancel connection wait',
+    updateInvalidAction: "Invalid update operation.",
+    updateChecksumMismatch: "The download was incomplete or its checksum differed. The partial package was removed.",
+    updateSizeMismatch: "The downloaded size differs from the release metadata.",
+    updateMissingPackage: "No matching release package is available.",
+    updateTooLarge: "The update response exceeds the allowed size.",
+    updateNetworkError: "Could not reach the release service. Check your connection and try again.",
+    updateInvalidChecksums: "The release checksum list is missing or invalid.",
+    updateInvalidRelease: "The release metadata is invalid.",
+    updateBusy: "An update operation is still running. Wait for it to finish.",
+    updateFailed: "The update could not be completed.",
+    updateDownloaded: "Download verified. Finish your session before installing.",
+    updateDownloading: "Downloading…",
+    updateAvailable: "New version available:",
+    updateCurrent: "You are using the latest available stable version or a newer build.",
+    updateChecking: "Checking releases…",
+    updateUnchecked: "Updates have not been checked.",
+    updateOpen: "Open download folder",
+    updateDownload: "Download verified package",
+    updateFormat: "Package format",
+    updateCheck: "Check for updates",
+    updateHelp: "Check for a stable release for this computer. Downloads are verified against the release SHA-256 checksums. Finish your session before installing the downloaded package; the running application is not replaced automatically.",
+    updateTitle: "Application updates",
+    recoveryConsole: "The console workflow has started. Keep the logs and restart the console before another session. Previously exported files remain on the PC.",
+    recoveryConnection: "Connection has not started. Check the chosen LAN address and console network, then retry. If you already entered RUN or REMOVE manually, restart the console first.",
+    autoLogError: "Could not save the USB log:",
+    autoWaiting: "Waiting",
+    autoDiagnostic: "USB diagnostics",
+    autoCommandsUsed: "The commands have already been attempted in this session.",
+    autoCommandsPending: "Start a session, check USB and confirm the console is ready.",
+    autoInvalidSession: "There is no fresh waiting session available for USB commands. Start a new session after restarting the console.",
+    autoCommandsRestart: "Command transfer stopped. Restart the console and start a new session before another attempt. Do not repeat REMOVE in the current process.",
+    autoCommandsFinished: "Commands sent. Check the console; connection and verification continue separately.",
+    autoCommandProgress: "Commands sent",
+    autoWait: "Pause between commands",
+    autoCommandsStart: "Send connection commands",
+    autoCommandsConfirm: "I restarted the console, opened SmileBASIC at the command entry, have not entered RUN or REMOVE, and selected US English USB keyboard layout.",
+    autoCommandsHelp: "Start a PC session and check USB first. Sends LOAD, its confirmation, RUN, REMOVE and this session’s START. Use the NS2 Desktop bootstrap saved as NS2 in slot 0.",
+    autoCommandsTitle: "Send connection commands by USB",
+    autoOpenLogs: "Open USB logs",
     sessionReady: 'Session ready', session: 'Console session', sessionTools: 'Session tools', contentTools: 'NCA and system code', verifySession: 'Check session',
     help_session: 'Connect once. Browse console files, mount games, test reads and export data from this session.',
     retry: 'Retry', retryHint: 'Repeat the failed operation using the current session.',
@@ -84,14 +124,14 @@ const I18N = {
     titleId: 'Title IDs', version: 'Version (optional)', titleHint: 'Enter up to 64 title IDs, separated by lines or commas. Duplicates are removed. Storage and optional decimal version apply to every title; leave version empty when versions differ.',
     start: 'Start a new session', requirements: 'Before you start',
     requirementsText: 'SmileBASIC 4.4.9 · System 23.0.1 · More than 20 MiB free in the SmileBASIC save. Keep the session open while using its tools.',
-    autoTitle: 'USB bootstrap autotyper', autoIntro: 'Optional mac2jb USB keyboard sender for compatible Apple Silicon Macs. Types this application’s bootstrap.bas into SmileBASIC; it does not press RUN.',
+    autoTitle: "USB typing", autoIntro: "Optional USB typing for compatible Apple Silicon Macs. Type the bootstrap once, then use the connection controls to send the current session commands.",
     autoDriverNote: 'Requires a compatible usbgadget driver already installed, approved and loaded. The upstream driver may require changes to SIP/startup security that reduce Mac protection. NS2 Desktop does not install it or change those settings.',
-    autoDriverGuide: 'mac2jb driver setup and hardware requirements', autoSteps: 'Connect a USB data cable to the console. Open SmileBASIC → Make a program with an empty editor in slot 0. Set the console USB keyboard layout to US English. Typing can take several minutes.',
+    autoDriverGuide: 'USB driver and hardware requirements', autoSteps: 'Connect a USB data cable to the console. Open SmileBASIC → Make a program with an empty editor in slot 0. Set the console USB keyboard layout to US English. Typing can take several minutes.',
     autoController: 'USB controller', autoDetect: 'Automatic', autoSpeed: 'Typing speed', autoNormal: 'Normal (50 ms)', autoSlow: 'Slow (100 ms)', autoVerySlow: 'Very slow (200 ms)',
     autoConfirm: 'The console editor is empty and its USB keyboard layout is US English.', autoCheck: 'Check driver', autoStart: 'Type bootstrap', autoStop: 'Stop typing', autoLines: 'Lines sent:', autoLineUnit: 'lines',
     autoUnsupported: 'USB autotyping is available only in the Apple Silicon macOS build. This method does not support Windows, Linux or Intel Macs.',
     autoUnchecked: 'Check the driver before typing.', autoChecking: 'Checking the bundled sender and loaded driver…',
-    autoMissingHelper: 'The USB sender is missing. Use the Apple Silicon macOS release.', autoMissingDriver: 'The usbgadget driver is not loaded. Follow the mac2jb setup guide, then check again.',
+    autoMissingHelper: 'The USB sender is missing. Use the Apple Silicon macOS release.', autoMissingDriver: 'The usbgadget driver is not loaded. Review the USB driver requirements, then check again.',
     autoCheckFailed: 'Could not verify the driver. See the details below.', autoReady: 'Driver loaded. Confirm the console editor and start typing.', autoStarting: 'Waiting for the console to recognize the USB keyboard…', autoTyping: 'Typing bootstrap into the console…',
     autoStopping: 'Stopping and releasing keys…', autoStopped: 'Stopped. Clear any partial text in the console editor before trying again.', autoFinished: 'USB sending finished. Verify the text on the console and save it as NS2 in slot 0. RUN was not pressed.', autoFailed: 'USB sending failed. Clear partial text before trying again; check the cable, controller and driver.',
     autoBusy: 'Stop USB typing before starting another operation or closing the application.', autoConfirmRequired: 'Confirm the empty editor and US English console keyboard layout.', autoInvalidController: 'Choose a valid USB controller.', autoInvalidDelay: 'Choose a supported typing speed.', autoNotReady: 'The USB sender and loaded driver must be available before typing.', autoInvalidAction: 'Invalid autotyper operation.',
@@ -115,6 +155,46 @@ const I18N = {
     alreadyActive: 'A session is active. Wait for it to finish.', invalidOrigin: 'Invalid request origin.'
   },
   es: {
+    cancelWaiting: 'Cancelar espera de conexión',
+    updateInvalidAction: "Operación de actualización inválida.",
+    updateChecksumMismatch: "La descarga quedó incompleta o su suma de verificación no coincide. Se eliminó el paquete parcial.",
+    updateSizeMismatch: "El tamaño descargado no coincide con el informado.",
+    updateMissingPackage: "No hay un paquete compatible disponible.",
+    updateTooLarge: "La respuesta de actualización supera el tamaño permitido.",
+    updateNetworkError: "No se pudo acceder a las releases. Revisá la conexión y reintentá.",
+    updateInvalidChecksums: "Falta la lista de sumas de verificación o es inválida.",
+    updateInvalidRelease: "Los datos de la release son inválidos.",
+    updateBusy: "Hay una operación de actualización en curso. Esperá a que termine.",
+    updateFailed: "No se pudo completar la actualización.",
+    updateDownloaded: "Descarga verificada. Terminá la sesión antes de instalar.",
+    updateDownloading: "Descargando…",
+    updateAvailable: "Nueva versión disponible:",
+    updateCurrent: "Tenés la última versión estable disponible o una build más nueva.",
+    updateChecking: "Consultando versiones…",
+    updateUnchecked: "Todavía no se buscaron actualizaciones.",
+    updateOpen: "Abrir carpeta de descarga",
+    updateDownload: "Descargar paquete verificado",
+    updateFormat: "Formato del paquete",
+    updateCheck: "Buscar actualizaciones",
+    updateHelp: "Buscá una versión estable para esta computadora. La descarga se verifica con las sumas SHA-256 de la release. Terminá la sesión antes de instalar el paquete; la aplicación en ejecución no se reemplaza automáticamente.",
+    updateTitle: "Actualizaciones de la aplicación",
+    recoveryConsole: "El proceso en la consola ya comenzó. Conservá los registros y reiniciá la consola antes de otra sesión. Los archivos exportados siguen en la PC.",
+    recoveryConnection: "La conexión todavía no comenzó. Revisá la dirección LAN y la red de la consola y reintentá. Si ya introdujiste RUN o REMOVE manualmente, reiniciá la consola primero.",
+    autoLogError: "No se pudo guardar el registro USB:",
+    autoWaiting: "Esperando",
+    autoDiagnostic: "Diagnóstico USB",
+    autoCommandsUsed: "Ya se intentó enviar los comandos en esta sesión.",
+    autoCommandsPending: "Iniciá una sesión, comprobá USB y confirmá que la consola está lista.",
+    autoInvalidSession: "No hay una sesión nueva esperando para enviar comandos USB. Reiniciá la consola e iniciá otra sesión.",
+    autoCommandsRestart: "El envío de comandos se detuvo. Reiniciá la consola e iniciá otra sesión antes de volver a intentar. No repitas REMOVE en el proceso actual.",
+    autoCommandsFinished: "Comandos enviados. Revisá la consola; la conexión y la verificación continúan por separado.",
+    autoCommandProgress: "Comandos enviados",
+    autoWait: "Pausa entre comandos",
+    autoCommandsStart: "Enviar comandos de conexión",
+    autoCommandsConfirm: "Reinicié la consola, abrí SmileBASIC en la entrada de comandos, no introduje RUN ni REMOVE y elegí el teclado USB en inglés de EE. UU.",
+    autoCommandsHelp: "Primero iniciá una sesión en la PC y comprobá USB. Envía LOAD, su confirmación, RUN, REMOVE y el START de esta sesión. Usá el bootstrap de NS2 Desktop guardado como NS2 en el slot 0.",
+    autoCommandsTitle: "Enviar comandos de conexión por USB",
+    autoOpenLogs: "Abrir registros USB",
     sessionReady: 'Sesión lista', session: 'Sesión de consola', sessionTools: 'Herramientas de la sesión', contentTools: 'NCA y código del sistema', verifySession: 'Comprobar sesión',
     help_session: 'Conectá una sola vez. Explorá archivos, montá juegos, probá lecturas y exportá datos desde esta sesión.',
     retry: 'Reintentar', retryHint: 'Repite la operación fallida usando la sesión actual.',
@@ -198,14 +278,14 @@ const I18N = {
     titleId: 'IDs de los títulos', version: 'Versión (opcional)', titleHint: 'Pegá hasta 64 TitleIDs, separados por líneas o comas. Se eliminan duplicados. El almacenamiento y la versión decimal opcional se aplican a todos; dejá la versión vacía si son distintas.',
     start: 'Iniciar una sesión nueva', requirements: 'Antes de empezar',
     requirementsText: 'SmileBASIC 4.4.9 · Sistema 23.0.1 · Más de 20 MiB libres en el guardado de SmileBASIC. Mantené la sesión abierta mientras uses las herramientas.',
-    autoTitle: 'Escritura automática del bootstrap por USB', autoIntro: 'Emisor de teclado USB opcional de mac2jb para Mac compatibles con Apple Silicon. Escribe el bootstrap.bas de esta aplicación en SmileBASIC; no pulsa RUN.',
+    autoTitle: "Escritura USB", autoIntro: "Escritura USB opcional para Mac Apple Silicon compatibles. Escribí el bootstrap una vez y luego usá los controles de conexión para enviar los comandos de la sesión actual.",
     autoDriverNote: 'Requiere un driver usbgadget compatible, ya instalado, aprobado y cargado. El driver original puede requerir cambios en SIP y la seguridad de arranque que reducen la protección del Mac. NS2 Desktop no lo instala ni cambia esos ajustes.',
-    autoDriverGuide: 'Configuración del driver y requisitos de mac2jb', autoSteps: 'Conectá un cable USB de datos a la consola. Abrí SmileBASIC → Make a program con el editor vacío en el slot 0. Configurá el teclado USB de la consola en inglés de EE. UU. La escritura puede tardar varios minutos.',
+    autoDriverGuide: 'Requisitos del driver y del hardware USB', autoSteps: 'Conectá un cable USB de datos a la consola. Abrí SmileBASIC → Make a program con el editor vacío en el slot 0. Configurá el teclado USB de la consola en inglés de EE. UU. La escritura puede tardar varios minutos.',
     autoController: 'Controlador USB', autoDetect: 'Automático', autoSpeed: 'Velocidad de escritura', autoNormal: 'Normal (50 ms)', autoSlow: 'Lenta (100 ms)', autoVerySlow: 'Muy lenta (200 ms)',
     autoConfirm: 'El editor de la consola está vacío y su teclado USB está en inglés de EE. UU.', autoCheck: 'Comprobar driver', autoStart: 'Escribir bootstrap', autoStop: 'Detener escritura', autoLines: 'Líneas enviadas:', autoLineUnit: 'líneas',
     autoUnsupported: 'La escritura automática USB está disponible solo en la versión macOS Apple Silicon. Este método no funciona en Windows, Linux ni Mac Intel.',
     autoUnchecked: 'Comprobá el driver antes de escribir.', autoChecking: 'Comprobando el emisor incluido y el driver cargado…',
-    autoMissingHelper: 'Falta el emisor USB. Usá la versión macOS Apple Silicon.', autoMissingDriver: 'El driver usbgadget no está cargado. Seguí la guía de mac2jb y volvé a comprobar.',
+    autoMissingHelper: 'Falta el emisor USB. Usá la versión macOS Apple Silicon.', autoMissingDriver: 'El driver usbgadget no está cargado. Revisá los requisitos del driver USB y volvé a comprobar.',
     autoCheckFailed: 'No se pudo verificar el driver. Revisá los detalles debajo.', autoReady: 'Driver cargado. Confirmá el editor de la consola para comenzar.', autoStarting: 'Esperando que la consola reconozca el teclado USB…', autoTyping: 'Escribiendo el bootstrap en la consola…',
     autoStopping: 'Deteniendo y liberando las teclas…', autoStopped: 'Detenido. Borrá el texto parcial del editor de la consola antes de reintentar.', autoFinished: 'Envío USB terminado. Verificá el texto en la consola y guardalo como NS2 en el slot 0. No se pulsó RUN.', autoFailed: 'Falló el envío USB. Borrá el texto parcial antes de reintentar; revisá el cable, el controlador y el driver.',
     autoBusy: 'Detené la escritura USB antes de iniciar otra operación o cerrar la aplicación.', autoConfirmRequired: 'Confirmá el editor vacío y el teclado USB de la consola en inglés de EE. UU.', autoInvalidController: 'Elegí un controlador USB válido.', autoInvalidDelay: 'Elegí una velocidad de escritura válida.', autoNotReady: 'El emisor USB y el driver cargado deben estar disponibles antes de escribir.', autoInvalidAction: 'Operación de escritura automática inválida.',
@@ -258,7 +338,9 @@ if (typeof document !== 'undefined') {
     renderState(); renderTitles(); renderHistory(); renderSdSupport();
   }
   function renderState() {
-    renderAutotyper();
+    renderAutotyper(); renderUpdates();
+    $('cancel-waiting').hidden = current.status !== 'waiting';
+    $('cancel-waiting').disabled = !!current.autotyper?.busy || connectionError;
     $('status').textContent = t(current.standby ? 'otherInstanceStatus' : current.progress?.stalled ? 'possibleStall' : current.status);
     $('status').dataset.state = current.progress?.stalled ? 'stalled' : current.status;
     const stage = current.stage.match(/^([1-4])\/4/);
@@ -279,7 +361,7 @@ if (typeof document !== 'undefined') {
     $('takeover').textContent = t(takeoverBusy ? 'replacingInstance' : previous ? 'replaceInstance' : 'activateInstance');
     $('build-info').textContent = current.appVersion ? t('versionLabel') + ' ' + current.appVersion + ' · ' + current.buildId : '';
     $('error').hidden = current.status !== 'failed' && !uiError;
-    $('error').textContent = current.status === 'failed' ? t('failedHelp') : uiError;
+    $('error').textContent = current.status === 'failed' ? t(current.recovery || 'failedHelp') : uiError;
     $('result-path').textContent = current.runFolder || current.dataRoot || '';
     const progress = current.progress;
     $('live-progress').hidden = !(progress?.events?.length) || current.standby;
@@ -587,6 +669,7 @@ if (typeof document !== 'undefined') {
       await poll();
     } catch (error) {showError(t('genericError') + ' ' + error.message); renderState();}
   });
+  $('cancel-waiting').addEventListener('click', async () => {try {await api('cancel-waiting', {}); await poll();} catch (error) {showError(error.message);}});
   $('copy').addEventListener('click', async () => {
     try {await navigator.clipboard.writeText(current.command); $('copy').textContent = t('copied');}
     catch {const range = document.createRange(); range.selectNodeContents($('command')); getSelection().removeAllRanges(); getSelection().addRange(range);}
@@ -594,19 +677,34 @@ if (typeof document !== 'undefined') {
   $('output').addEventListener('click', () => api('output', {}).catch(error => showError(error.message)));
   function renderAutotyper() {
     const value = current.autotyper || {supported: false, status: 'unsupported', logs: []};
+    const commands = value.kind === 'commands';
     const keys = {unsupported: 'autoUnsupported', unchecked: 'autoUnchecked', checking: 'autoChecking',
       'missing-helper': 'autoMissingHelper', 'missing-driver': 'autoMissingDriver', 'check-failed': 'autoCheckFailed',
       ready: 'autoReady', starting: 'autoStarting', typing: 'autoTyping', stopping: 'autoStopping', stopped: 'autoStopped', finished: 'autoFinished', failed: 'autoFailed'};
-    if (value.status !== lastAutoStatus && ['stopped', 'finished', 'failed'].includes(value.status)) $('autotyper-confirm').checked = false;
+    if (value.status !== lastAutoStatus && ['stopped', 'finished', 'failed'].includes(value.status)) {
+      $('autotyper-confirm').checked = false; $('commands-confirm').checked = false;
+    }
     lastAutoStatus = value.status;
     $('autotyper-controls').hidden = !value.supported;
-    $('autotyper-status').textContent = t(keys[value.status] || 'autoUnchecked') + (value.error ? ' ' + value.error : '');
-    const locked = autoRequest || connectionError || current.standby || current.consoleActive;
-    for (const id of ['autotyper-controller', 'autotyper-delay', 'autotyper-confirm', 'autotyper-check']) $(id).disabled = locked || value.busy;
-    $('autotyper-start').disabled = locked || value.busy || !value.helperPresent || !value.driverLoaded || !$('autotyper-confirm').checked;
-    $('autotyper-stop').disabled = autoRequest || current.standby || !['starting', 'typing'].includes(value.status);
-    $('autotyper-progress').textContent = value.total ? t('autoLines') + ' ' + value.completed + '/' + value.total : '';
+    $('command-typing').hidden = !value.supported;
+    const statusKey = commands && ['failed', 'stopped'].includes(value.status) ? 'autoCommandsRestart' :
+      commands && value.status === 'finished' ? 'autoCommandsFinished' : keys[value.status] || 'autoUnchecked';
+    $('autotyper-status').textContent = t(statusKey) + (value.error ? ' ' + value.error : '');
+    const locked = autoRequest || connectionError || current.standby;
+    const settingsLocked = locked || value.busy || current.consoleActive && !current.canTypeCommands;
+    for (const id of ['autotyper-controller', 'autotyper-delay', 'autotyper-wait', 'autotyper-check']) $(id).disabled = settingsLocked;
+    $('autotyper-confirm').disabled = locked || value.busy || current.consoleActive;
+    $('autotyper-start').disabled = locked || current.consoleActive || value.busy || !value.helperPresent || !value.driverLoaded || !$('autotyper-confirm').checked;
+    $('commands-confirm').disabled = settingsLocked || !current.canTypeCommands;
+    $('autotyper-commands').disabled = locked || value.busy || !current.canTypeCommands || !value.commandsPresent || !value.driverLoaded || !$('commands-confirm').checked;
+    for (const id of ['autotyper-stop', 'commands-stop']) $(id).disabled = locked || !['starting', 'typing'].includes(value.status);
+    const progress = value.total ? t(commands ? 'autoCommandProgress' : 'autoLines') + ' ' + value.completed + '/' + value.total : '';
+    const waiting = value.wait ? ' · ' + t('autoWaiting') + ' ' + value.wait.label + ': ' + Math.ceil(value.wait.remainingMs / 1000) + ' s' : '';
+    $('autotyper-progress').textContent = progress + waiting;
+    $('commands-status').textContent = commands ? t(statusKey) + ' ' + progress + waiting : t(current.commandsAttempted ? 'autoCommandsUsed' : 'autoCommandsPending');
     $('autotyper-preview').textContent = value.preview ? 'bootstrap.bas · ' + value.preview.lines + ' ' + t('autoLineUnit') + ' · ' + value.preview.bytes + ' bytes' : '';
+    $('autotyper-diagnostics').textContent = value.diagnostic ? t('autoDiagnostic') + ': Darwin ' + value.diagnostic.os + ' · ' + value.diagnostic.sip + ' · ' + value.diagnostic.controllers.join(', ') : '';
+    $('autotyper-log-path').textContent = (value.logFile || '') + (value.logError ? ' · ' + t('autoLogError') + ' ' + value.logError : '');
     $('autotyper-log').hidden = !value.logs?.length;
     $('autotyper-log').textContent = (value.logs || []).join('\n');
   }
@@ -614,16 +712,48 @@ if (typeof document !== 'undefined') {
     if (autoRequest) return;
     autoRequest = true; renderAutotyper();
     try {
-      const value = await api('autotyper', {action, confirmed: $('autotyper-confirm').checked,
-        controller: $('autotyper-controller').value, delayMs: Number($('autotyper-delay').value)});
-      current.autotyper = value; current.active = !!current.consoleActive || value.busy;
+      const value = await api('autotyper', {action, confirmed: $(action === 'commands' ? 'commands-confirm' : 'autotyper-confirm').checked,
+        controller: $('autotyper-controller').value, delayMs: Number($('autotyper-delay').value), waitMs: Number($('autotyper-wait').value)});
+      current.autotyper = value; current.active = !!current.consoleActive || value.busy || current.updates?.busy;
       if (action === 'start') $('autotyper-confirm').checked = false;
+      if (action === 'commands') {$('commands-confirm').checked = false; current.commandsAttempted = true; current.canTypeCommands = false;}
     } catch (error) {showError(error.message);}
     finally {autoRequest = false; renderState();}
   }
   for (let i = 0; i < 16; i++) $('autotyper-controller').add(new Option('usb-drd' + i, 'usb-drd' + i));
+  for (const id of ['autotyper-controller', 'autotyper-delay', 'autotyper-wait']) {
+    try {const saved = localStorage.getItem('ns2-' + id); if ([...$(id).options].some(option => option.value === saved)) $(id).value = saved;} catch {}
+    $(id).addEventListener('change', () => {try {localStorage.setItem('ns2-' + id, $(id).value);} catch {}});
+  }
   $('autotyper-confirm').addEventListener('change', renderAutotyper);
-  for (const action of ['check', 'start', 'stop']) $('autotyper-' + action).addEventListener('click', () => autotyperAction(action));
+  $('commands-confirm').addEventListener('change', renderAutotyper);
+  $('autotyper-logs').addEventListener('click', () => api('usb-logs', {}).catch(error => showError(error.message)));
+  $('commands-stop').addEventListener('click', () => autotyperAction('stop'));
+  for (const action of ['check', 'start', 'stop', 'commands']) $('autotyper-' + action).addEventListener('click', () => autotyperAction(action));
+  let updateRequest = false;
+  function renderUpdates() {
+    const value = current.updates || {status: 'unchecked', packages: []};
+    const keys = {unchecked: 'updateUnchecked', checking: 'updateChecking', current: 'updateCurrent', available: 'updateAvailable', downloading: 'updateDownloading', downloaded: 'updateDownloaded', failed: 'updateFailed'};
+    $('update-status').textContent = t(keys[value.status] || 'updateUnchecked') + (value.version ? ' ' + value.version : '') +
+      (value.status === 'downloading' ? ' · ' + Math.round(value.received / Math.max(1, value.total) * 100) + '%' : '') + (value.error ? ' ' + t(value.error) : '');
+    const names = value.packages.map(item => item.name), select = $('update-package'), selected = select.value;
+    if ([...select.options].map(item => item.value).join(',') !== names.join(',')) {
+      select.replaceChildren(...names.map(name => new Option(name, name))); if (names.includes(selected)) select.value = selected;
+    }
+    const locked = updateRequest || value.busy || connectionError || current.standby;
+    $('update-check').disabled = locked; select.disabled = locked || !names.length;
+    $('update-download').disabled = locked || !names.length;
+    $('update-open').disabled = locked || !value.file;
+    $('update-path').textContent = value.file || '';
+  }
+  async function updateAction(action) {
+    if (updateRequest) return;
+    updateRequest = true; renderUpdates();
+    try {const value = await api('updates', {action, name: $('update-package').value}); if (action !== 'open') current.updates = value;}
+    catch (error) {showError(error.message);}
+    finally {updateRequest = false; renderUpdates();}
+  }
+  for (const action of ['check', 'download', 'open']) $('update-' + action).addEventListener('click', () => updateAction(action));
   $('bootstrap').addEventListener('click', async () => {
     try {
       const response = await fetch('/api/bootstrap', {headers: {authorization: 'Bearer ' + token}});

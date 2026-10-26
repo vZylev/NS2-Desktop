@@ -277,3 +277,23 @@ test('the engine has only local or Node dependencies, all present in the package
     }
   }
 });
+
+test('connection waiting can be cancelled without touching an accepted native connection', async t => {
+  const {listen} = require('./engine/lib/connection.cjs');
+  async function freePort() {
+    const probe = net.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+    const port = probe.address().port; await new Promise(resolve => probe.close(resolve)); return port;
+  }
+  const cancelled = new AbortController();
+  const port = await freePort();
+  await assert.rejects(listen({host: '127.0.0.1', port, token: [0,0,0,0], signal: cancelled.signal,
+    onWaiting: () => cancelled.abort()}), /cancelled/);
+  await assert.rejects(listen({host: '127.0.0.1', port, token: [0,0,0,0], signal: cancelled.signal}), /cancelled/);
+  const active = new AbortController(); let peer;
+  const accepted = await listen({host: '127.0.0.1', port, token: [1,2,3,4], signal: active.signal, onWaiting() {
+    peer = net.createConnection({host: '127.0.0.1', port}, () => peer.write(hello(2, [1,2,3,4])));
+  }});
+  t.after(() => {peer.destroy(); accepted.connection.close();});
+  active.abort(); peer.write(Buffer.from([42]));
+  assert.deepEqual(await accepted.connection.read(1), Buffer.from([42]));
+});
